@@ -19,4 +19,22 @@ class MasterInstrument < ApplicationRecord
     record.save!
     record
   end
+
+  def close(unit:, interval:, number_of_candles:)
+    instrument_histories.where(
+      unit: unit,
+      interval: interval
+    ).order(date: :desc)
+    .limit(number_of_candles)
+    .pluck(:close)
+  end
+
+  def open(unit:, interval:, number_of_candles:)
+    instrument_histories.where(
+      unit: unit,
+      interval: interval
+    ).order(date: :desc)
+    .limit(number_of_candles)
+    .pluck(:open)
+  end
 end

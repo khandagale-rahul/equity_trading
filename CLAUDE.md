@@ -17,6 +17,7 @@ This is an **Equity Trading** Rails 8 application for managing trading API confi
 - **Message Protocol**: Google Protobuf for binary data decoding
 - **Cache/State**: Redis for WebSocket connection state management
 - **Testing**: RSpec with FactoryBot and Faker
+- **Formula Engine**: Dentaku for evaluating trading setup rules
 - **Deployment**: Kamal (Docker-based)
 
 ## Essential Commands
@@ -241,6 +242,26 @@ Key methods in Authentication concern:
 - Enum for `broker`: `{ zerodha: 1, upstox: 2, angel_one: 3 }`
 - `belongs_to :user`
 
+**Setup** (`app/models/setup.rb`):
+- Base model for trading setups/strategies using **Single Table Inheritance (STI)**
+- `belongs_to :user`
+- Stores trading strategy configuration: `type`, `shortlisted_instruments`, `active`, `trades_per_day`
+- `evaluate_rule(master_instrument)` - Evaluates setup rules using Dentaku calculator
+  - Retrieves current, previous, and day-before-previous candles from `InstrumentHistory`
+  - Builds context with OHLC data: `previous_candle_close`, `previous_candle_open`, `previous_candle_high`, `day_before_previous_candle_close`, `current_candle_open`
+  - Evaluates the `rules` formula string against the context
+- Subclasses implement specific trading strategies (e.g., `TwoPercentCross`)
+
+**TwoPercentCross** (`app/models/two_percent_cross.rb`):
+- Specific setup implementation for "2% Cross" trading strategy
+- Inherits from `Setup` model (STI pattern)
+- `rules` method returns formula string with three conditions:
+  1. Yesterday's gain < 1%: `(previous_candle_close - previous_candle_open)/previous_candle_open * 100 < 1`
+  2. Yesterday's high < 2% above day-before-yesterday's close: `(previous_candle_high - day_before_previous_candle_close)/day_before_previous_candle_close * 100 < 2`
+  3. Today's open < 1% above yesterday's close: `(current_candle_open - previous_candle_close)/previous_candle_close * 100 < 1`
+- `self.initiate` - Class method to evaluate rules across all master instruments
+- `self.is_satisfy_rule?(master_instrument)` - Checks if instrument satisfies the strategy rules
+
 ### Routes Structure
 
 - **Root**: Dashboard (`dashboard#index`)
@@ -250,6 +271,7 @@ Key methods in Authentication concern:
 - **Instruments**: Read-only index (`resources :instruments, only: [:index]`) for viewing trading instruments
 - **Holdings**: Read-only (`resources :holdings, only: [:index, :show]`)
 - **Instrument Histories**: Full CRUD (`resources :instrument_histories`)
+- **Setups**: Full CRUD (`resources :setups`) for managing trading strategies
 - **Upstox OAuth**:
   - `POST /upstox/oauth/authorize/:id` - Initiates OAuth flow
   - `GET /upstox/oauth/callback` - Handles OAuth callback
@@ -307,6 +329,47 @@ class MyJob < ApplicationJob
     log_info "Job started at #{Time.current}"
     # ... job logic ...
     log_info "Job completed successfully"
+  end
+end
+```
+
+### Dentaku Formula Evaluation System
+
+**Overview**: The application uses Dentaku (a formula language parser) to enable dynamic rule evaluation for trading setups without code changes.
+
+**Global Calculator** ([config/initializers/dentaku.rb](config/initializers/dentaku.rb)):
+- Initializes a global `CALCULATOR` constant at app boot
+- Registers custom functions via `DentakuCalculator::RegisterFunctions`
+- Available throughout the application for formula evaluation
+
+**Custom Functions** ([lib/dentaku_calculator/](lib/dentaku_calculator/)):
+- **Function Registry** (`register_functions.rb`): Central registry that loads all custom Dentaku functions
+- **CloseFunction** (`functions/close_function.rb`): Returns close price for an instrument
+  - Signature: `close(unit, interval, **context)`
+  - Expects `instrument` in context hash
+  - Retrieves historical close price based on unit and interval parameters
+
+**Adding New Functions**:
+1. Create new function class in `lib/dentaku_calculator/functions/`
+2. Implement `self.register(calculator)` method
+3. Add function class to `FUNCTION_CLASSES` array in `register_functions.rb`
+4. Function will be auto-loaded at app initialization
+
+Example custom function:
+```ruby
+module DentakuCalculator
+  module Functions
+    class MyFunction
+      def self.register(calculator)
+        calculator.add_function(
+          :my_function,
+          :numeric,
+          ->(param1, param2, **context) {
+            # Function logic here
+          }
+        )
+      end
+    end
   end
 end
 ```
@@ -490,11 +553,21 @@ bin/rails generate migration CreateSomething --database=cache
 CSS is bundled via `cssbundling-rails`. After pulling changes, run `bin/rails css:build` if styles are missing.
 
 ### Single Table Inheritance (STI) Pattern
-The `Instrument` model uses STI to handle broker-specific instruments:
+
+The application uses STI for two key domain models:
+
+**Instrument Model STI**:
 - All instruments are stored in the `instruments` table
 - The `type` column determines the subclass (`UpstoxInstrument`, `ZerodhaInstrument`)
 - Use `Instrument.create(type: 'UpstoxInstrument', ...)` or `UpstoxInstrument.create(...)`
 - Query all instruments: `Instrument.all`, or specific broker: `UpstoxInstrument.all`
+
+**Setup Model STI**:
+- All trading setups/strategies are stored in the `setups` table
+- The `type` column determines the strategy subclass (`TwoPercentCross`, etc.)
+- Use `Setup.create(type: 'TwoPercentCross', ...)` or `TwoPercentCross.create(...)`
+- Query all setups: `Setup.all`, or specific strategy: `TwoPercentCross.all`
+- Each subclass implements its own `rules` method returning a Dentaku formula string
 
 **UpstoxInstrument** has a class method `import_from_upstox(exchange: "NSE_MIS")` that:
 - Downloads and imports instrument data from Upstox API

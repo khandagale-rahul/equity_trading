@@ -126,7 +126,6 @@ module Upstox
 
     def handle_market_data(data)
       log_debug "[MarketData] Received data: #{data.inspect}"
-
       # Example: Broadcast to ActionCable (if you have a channel set up)
       # ActionCable.server.broadcast("market_data_channel", data)
 

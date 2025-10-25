@@ -55,10 +55,12 @@ gem "google-protobuf"
 
 # Redis client
 gem "redis-client"
+
 gem "haml-rails"
 gem "bootstrap", "~> 5.3.3"
 gem "rest-client"
 gem "csv"
+gem "dentaku"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem

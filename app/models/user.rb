@@ -11,4 +11,5 @@ class User < ApplicationRecord
 
   has_many :api_configurations, dependent: :destroy
   has_many :holdings, dependent: :destroy
+  has_many :setups, dependent: :destroy
 end

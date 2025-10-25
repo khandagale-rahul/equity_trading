@@ -1,0 +1,54 @@
+%p{style: "color: green"}= notice
+
+- content_for :title, "Setup - #{@setup.name}"
+
+.card
+  .card-header
+    %h1
+      = @setup.name
+      Setup
+    .text-muted
+      Status:
+      - if @setup.active
+        %span.badge.bg-success Active
+      - else
+        %span.badge.bg-secondary Inactive
+  .card-body
+    %table.table.table-bordered
+      %tbody
+        %tr
+          %th{style: "width: 30%"} Strategy Name
+          %td= @setup.name
+        %tr
+          %th Status
+          %td
+            - if @setup.active
+              %span.badge.bg-success Active
+            - else
+              %span.badge.bg-secondary Inactive
+        %tr
+          %th Trades Per Day
+          %td= @setup.trades_per_day || "N/A"
+        %tr
+          %th Shortlisted Instruments
+          %td
+            - if @setup.shortlisted_instruments.present?
+              %code= @setup.shortlisted_instruments
+            - else
+              %span.text-muted All instruments
+        - if @setup.respond_to?(:rules)
+          %tr
+            %th Rules
+            %td
+              %pre.bg-light.p-2.rounded= @setup.rules
+
+.mt-3
+  = link_to edit_setup_path(@setup), class: "btn btn-warning me-2" do
+    %i.fas.fa-edit.me-1
+    Edit Setup
+  = link_to setups_path, class: "btn btn-secondary me-2" do
+    %i.fas.fa-arrow-left.me-1
+    Back to Setups
+  = button_to @setup, method: :delete, class: "btn btn-danger", data: { confirm: "Are you sure you want to delete this setup?" } do
+    %i.fas.fa-trash.me-1
+    Delete Setup

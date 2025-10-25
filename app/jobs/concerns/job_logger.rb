@@ -15,7 +15,7 @@ module JobLogger
     log_file = log_dir.join("#{logger_file_name}.log")
 
     @job_logger = Logger.new(log_file, "daily")
-    @job_logger.level = Logger::INFO
+    @job_logger.level = Logger::DEBUG
     @job_logger.formatter = proc do |severity, datetime, _progname, msg|
       "[#{datetime.strftime('%Y-%m-%d %H:%M:%S')}] #{severity}: #{msg}\n"
     end
@@ -27,6 +27,10 @@ module JobLogger
   end
 
   # Convenience methods to log messages
+  def log_debug(message)
+    job_logger.debug(message)
+  end
+
   def log_info(message)
     job_logger.info(message)
   end
@@ -39,7 +43,7 @@ module JobLogger
     job_logger.error(message)
   end
 
-  def log_debug(message)
-    job_logger.debug(message)
+  def log_fatal(message)
+    job_logger.fatal(message)
   end
 end

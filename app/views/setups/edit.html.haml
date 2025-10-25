@@ -1,0 +1,15 @@
+- content_for :title, "Editing Setup"
+
+.card
+  .card-header
+    %h1 Editing Trading Setup
+  .card-body
+    = render "form", setup: @setup
+
+.mt-3
+  = link_to @setup, class: "btn btn-info me-2" do
+    %i.fas.fa-eye.me-1
+    Show Setup
+  = link_to setups_path, class: "btn btn-secondary" do
+    %i.fas.fa-arrow-left.me-1
+    Back to Setups
