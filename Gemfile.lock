@@ -114,9 +114,6 @@ GEM
     debug (1.11.0)
       irb (~> 1.10)
       reline (>= 0.3.8)
-    dentaku (3.5.6)
-      bigdecimal
-      concurrent-ruby
     diff-lcs (1.6.2)
     domain_name (0.6.20240107)
     dotenv (3.1.8)
@@ -481,7 +478,6 @@ DEPENDENCIES
   cssbundling-rails
   csv
   debug
-  dentaku
   eventmachine
   factory_bot_rails
   faker

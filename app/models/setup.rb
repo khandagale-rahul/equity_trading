@@ -1,12 +1,24 @@
 class Setup < ApplicationRecord
+  include SetupConcern
+
   belongs_to :user
 
+  attr_accessor :instrument
+
   def evaluate_rule(master_instrument)
-    return unless rules.present?
+    result = nil
+    ActiveRecord::Base.transaction do
+      begin
+        return unless rules.present?
 
-    Thread.current[:dentaku_context] = {}
-    Thread.current[:dentaku_context][:instrument] = master_instrument
+        self.instrument = master_instrument
+        result = eval(rules)
+      rescue
+        errors.add(:rules, "is invalid")
+      end
+      raise ActiveRecord::Rollback
+    end
 
-    CALCULATOR.evaluate(rules)
+    result
   end
 end
