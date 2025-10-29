@@ -1,15 +1,15 @@
 module TechnicalIndicators
-  module Close
+  module Open
     extend ActiveSupport::Concern
 
-    def close(unit, interval, number_of_candles)
-      self.master_instrument.instrument_histories.where(
+    def open(unit, interval, number_of_candles)
+     self.master_instrument.instrument_histories.where(
         unit: unit,
         interval: interval
       ).order(date: :desc)
       .offset(number_of_candles-1)
       .first
-      .close
+      .open
     end
   end
 end

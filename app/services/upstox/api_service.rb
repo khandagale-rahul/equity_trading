@@ -454,6 +454,65 @@ module Upstox
       nil
     end
 
+    def get_intraday_candle_data(params)
+      instrument_key = params[:instrument]
+      unit = params[:unit]
+      interval = params[:interval]
+
+      # Validate unit
+      valid_units = %w[minutes hours days weeks months]
+      unless valid_units.include?(unit)
+        return {
+          status: "failed",
+          message: "Invalid unit. Must be one of: #{valid_units.join(', ')}"
+        }.with_indifferent_access
+      end
+
+      # Validate interval based on unit
+      interval_valid = case unit
+      when "minutes"
+        interval.between?(1, 300)
+      when "hours"
+        interval.between?(1, 5)
+      when "days", "weeks", "months"
+        interval == 1
+      end
+
+      unless interval_valid
+        return {
+          status: "failed",
+          message: "Invalid interval for unit '#{unit}'"
+        }.with_indifferent_access
+      end
+
+      # Build URL (URL encode instrument_key to handle special characters like |)
+      encoded_instrument_key = URI.encode_www_form_component(instrument_key)
+      url_parts = [
+        "#{API_BASE_URL}/historical-candle/intraday",
+        encoded_instrument_key,
+        unit,
+        interval
+      ]
+
+      url = url_parts.join("/")
+
+      @response = begin
+        api_response = RestClient::Request.execute(
+          method: :get,
+          url: url,
+          timeout: 40,
+          headers: credentials.merge({ 'Content-Type': "application/json" })
+        )
+
+        JSON.parse(api_response)
+      rescue => e
+        error_message = e.http_body rescue e.message
+        { status: "failed", message: error_message }
+      end.with_indifferent_access
+
+      nil
+    end
+
     # ============================================
     # MARKET QUOTES
     # ============================================

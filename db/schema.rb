@@ -93,6 +93,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_23_121753) do
     t.index ["zerodha_instrument_id"], name: "index_master_instruments_on_zerodha_instrument_id", unique: true
   end
 
+  create_table "screeners", force: :cascade do |t|
+    t.string "name"
+    t.bigint "user_id", null: false
+    t.boolean "active", default: false
+    t.text "rules"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "scanned_instrument_ids", default: [], array: true
+    t.index ["user_id"], name: "index_screeners_on_user_id"
+  end
+
   create_table "sessions", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.string "ip_address"
@@ -100,19 +111,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_23_121753) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["user_id"], name: "index_sessions_on_user_id"
-  end
-
-  create_table "setups", force: :cascade do |t|
-    t.string "name"
-    t.bigint "user_id", null: false
-    t.jsonb "shortlisted_instruments", default: {}
-    t.integer "executed_instrument_ids", default: [], array: true
-    t.boolean "active", default: false
-    t.integer "trades_per_day", default: 0
-    t.text "rules"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["user_id"], name: "index_setups_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -129,6 +127,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_23_121753) do
   add_foreign_key "api_configurations", "users"
   add_foreign_key "holdings", "users"
   add_foreign_key "instrument_histories", "master_instruments"
+  add_foreign_key "screeners", "users"
   add_foreign_key "sessions", "users"
-  add_foreign_key "setups", "users"
 end

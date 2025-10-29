@@ -35,3 +35,9 @@
 
 /config/database.yml
 /config/credentials.yml.enc
+
+# Ignore node_modules
+/node_modules
+
+# Ignore built CSS
+/app/assets/builds

@@ -23,10 +23,10 @@ require 'rails_helper'
 # removed from Rails core in Rails 5, but can be added back in via the
 # `rails-controller-testing` gem.
 
-RSpec.describe SetupsController, type: :controller do
+RSpec.describe ScreenersController, type: :controller do
 
   # This should return the minimal set of attributes required to create a valid
-  # Setup. As you add validations to Setup, be sure to
+  # Screener. As you add validations to Screener, be sure to
   # adjust the attributes here as well.
   let(:valid_attributes) {
     skip("Add a hash of attributes valid for your model")
@@ -38,12 +38,12 @@ RSpec.describe SetupsController, type: :controller do
 
   # This should return the minimal set of values that should be in the session
   # in order to pass any filters (e.g. authentication) defined in
-  # SetupsController. Be sure to keep this updated too.
+  # ScreenersController. Be sure to keep this updated too.
   let(:valid_session) { {} }
 
   describe "GET #index" do
     it "returns a success response" do
-      Setup.create! valid_attributes
+      Screener.create! valid_attributes
       get :index, params: {}, session: valid_session
       expect(response).to be_successful
     end
@@ -51,8 +51,8 @@ RSpec.describe SetupsController, type: :controller do
 
   describe "GET #show" do
     it "returns a success response" do
-      setup = Setup.create! valid_attributes
-      get :show, params: {id: setup.to_param}, session: valid_session
+      screener = Screener.create! valid_attributes
+      get :show, params: {id: screener.to_param}, session: valid_session
       expect(response).to be_successful
     end
   end
@@ -66,29 +66,29 @@ RSpec.describe SetupsController, type: :controller do
 
   describe "GET #edit" do
     it "returns a success response" do
-      setup = Setup.create! valid_attributes
-      get :edit, params: {id: setup.to_param}, session: valid_session
+      screener = Screener.create! valid_attributes
+      get :edit, params: {id: screener.to_param}, session: valid_session
       expect(response).to be_successful
     end
   end
 
   describe "POST #create" do
     context "with valid params" do
-      it "creates a new Setup" do
+      it "creates a new Screener" do
         expect {
-          post :create, params: {setup: valid_attributes}, session: valid_session
-        }.to change(Setup, :count).by(1)
+          post :create, params: {screener: valid_attributes}, session: valid_session
+        }.to change(Screener, :count).by(1)
       end
 
-      it "redirects to the created setup" do
-        post :create, params: {setup: valid_attributes}, session: valid_session
-        expect(response).to redirect_to(Setup.last)
+      it "redirects to the created screener" do
+        post :create, params: {screener: valid_attributes}, session: valid_session
+        expect(response).to redirect_to(Screener.last)
       end
     end
 
     context "with invalid params" do
       it "renders a response with 422 status (i.e. to display the 'new' template)" do
-        post :create, params: {setup: invalid_attributes}, session: valid_session
+        post :create, params: {screener: invalid_attributes}, session: valid_session
         expect(response).to have_http_status(:unprocessable_content)
       end
     end
@@ -100,41 +100,41 @@ RSpec.describe SetupsController, type: :controller do
         skip("Add a hash of attributes valid for your model")
       }
 
-      it "updates the requested setup" do
-        setup = Setup.create! valid_attributes
-        put :update, params: {id: setup.to_param, setup: new_attributes}, session: valid_session
-        setup.reload
+      it "updates the requested screener" do
+        screener = Screener.create! valid_attributes
+        put :update, params: {id: screener.to_param, screener: new_attributes}, session: valid_session
+        screener.reload
         skip("Add assertions for updated state")
       end
 
-      it "redirects to the setup" do
-        setup = Setup.create! valid_attributes
-        put :update, params: {id: setup.to_param, setup: new_attributes}, session: valid_session
-        expect(response).to redirect_to(setup)
+      it "redirects to the screener" do
+        screener = Screener.create! valid_attributes
+        put :update, params: {id: screener.to_param, screener: new_attributes}, session: valid_session
+        expect(response).to redirect_to(screener)
       end
     end
 
     context "with invalid params" do
       it "renders a response with 422 status (i.e. to display the 'edit' template)" do
-        setup = Setup.create! valid_attributes
-        put :update, params: {id: setup.to_param, setup: invalid_attributes}, session: valid_session
+        screener = Screener.create! valid_attributes
+        put :update, params: {id: screener.to_param, screener: invalid_attributes}, session: valid_session
         expect(response).to have_http_status(:unprocessable_content)
       end
     end
   end
 
   describe "DELETE #destroy" do
-    it "destroys the requested setup" do
-      setup = Setup.create! valid_attributes
+    it "destroys the requested screener" do
+      screener = Screener.create! valid_attributes
       expect {
-        delete :destroy, params: {id: setup.to_param}, session: valid_session
-      }.to change(Setup, :count).by(-1)
+        delete :destroy, params: {id: screener.to_param}, session: valid_session
+      }.to change(Screener, :count).by(-1)
     end
 
-    it "redirects to the setups list" do
-      setup = Setup.create! valid_attributes
-      delete :destroy, params: {id: setup.to_param}, session: valid_session
-      expect(response).to redirect_to(setups_url)
+    it "redirects to the screeners list" do
+      screener = Screener.create! valid_attributes
+      delete :destroy, params: {id: screener.to_param}, session: valid_session
+      expect(response).to redirect_to(screeners_url)
     end
   end
 

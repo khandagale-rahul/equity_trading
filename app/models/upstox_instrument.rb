@@ -48,6 +48,34 @@ class UpstoxInstrument < Instrument
     end
   end
 
+  def self.update_ltps
+    api_config = ApiConfiguration.upstox.last
+    upstox_api = Upstox::ApiService.new(access_token: api_config.access_token)
+
+    response = {}
+    UpstoxInstrument.pluck(:identifier).each_slice(100) do |slice|
+      identifiers = slice.join(",")
+      upstox_api.quote_ltp(instrument_keys: identifiers)
+
+      if upstox_api.response[:status] == "success"
+        upstox_api.response.dig("data")&.each do |identifier, quote_data|
+          instrument = UpstoxInstrument.find_by(symbol: identifier.split(":").last)
+
+          next unless instrument && quote_data
+
+          instrument.master_instrument&.update(
+            ltp: quote_data["last_price"].to_f,
+            previous_day_ltp: quote_data["cp"].to_f
+          )
+        end
+      else
+        response = { status: "failed", message: upstox_api.response }
+      end
+    end
+
+    super if response[:status] == "failed"
+  end
+
   def create_instrument_history(unit: "day", interval: 1, from_date: 7.days.ago.to_date.to_s, to_date: Date.today.to_s)
     api_config = ApiConfiguration.upstox.last
     upstox_api = Upstox::ApiService.new(access_token: api_config.access_token)
@@ -81,25 +109,34 @@ class UpstoxInstrument < Instrument
     end
   end
 
-  def self.update_ltps
-    UpstoxInstrument.pluck(:identifier).each_slice(100) do |slice|
-      identifiers = slice.join(",")
-      api_config = ApiConfiguration.upstox.last
-      upstox_api = Upstox::ApiService.new(access_token: api_config.access_token)
-      upstox_api.quote_ltp(instrument_keys: identifiers)
+  def create_intraday_instrument_history(unit: "day", interval: 1)
+    api_config = ApiConfiguration.upstox.last
+    upstox_api = Upstox::ApiService.new(access_token: api_config.access_token)
 
-      if upstox_api.response[:status] == "success"
-        upstox_api.response.dig("data")&.each do |identifier, quote_data|
-          instrument = UpstoxInstrument.find_by(symbol: identifier.split(":").last)
-          next unless instrument && quote_data
+    upstox_api.get_intraday_candle_data(
+      instrument: identifier,
+      unit: unit.pluralize,
+      interval: interval
+    )
 
-          instrument.master_instrument&.update(
-            ltp: quote_data["last_price"].to_f,
-            previous_day_ltp: quote_data["cp"].to_f
-          )
-        end
+    candles = upstox_api.response&.dig("data", "candles")
+    return unless candles
+    return unless master_instrument
+
+    candles.reverse.each do |candle_data|
+      master_instrument.instrument_histories.find_or_initialize_by(
+        unit: unit,
+        interval: interval,
+        date: candle_data[0]
+      ).tap do |history|
+        history.open = candle_data[1]
+        history.high = candle_data[2]
+        history.low = candle_data[3]
+        history.close = candle_data[4]
+        history.volume = candle_data[5]
+
+        history.save!
       end
     end
-    nil
   end
 end

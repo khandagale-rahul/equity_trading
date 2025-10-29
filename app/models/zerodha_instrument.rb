@@ -40,4 +40,7 @@ class ZerodhaInstrument < Instrument
     end
     nil
   end
+
+  def self.update_ltps
+  end
 end

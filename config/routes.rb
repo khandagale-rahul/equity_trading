@@ -1,8 +1,12 @@
 Rails.application.routes.draw do
-  resources :setups
+  resources :screeners do
+    member do
+      get :scan
+    end
+  end
   resources :instrument_histories
-  resources :holdings, only: [:index, :show]
-  resources :instruments, only: [:index]
+  resources :holdings, only: [ :index, :show ]
+  resources :instruments, only: [ :index ]
   resource :session
   resources :passwords, param: :token
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
@@ -10,14 +14,14 @@ Rails.application.routes.draw do
 
   # Upstox OAuth routes
   namespace :upstox do
-    post 'oauth/authorize/:id', to: 'oauth#authorize', as: 'oauth_authorize'
-    get 'oauth/callback', to: 'oauth#callback', as: 'oauth_callback'
+    post "oauth/authorize/:id", to: "oauth#authorize", as: "oauth_authorize"
+    get "oauth/callback", to: "oauth#callback", as: "oauth_callback"
   end
 
   # Zerodha OAuth routes
   namespace :zerodha do
-    post 'oauth/authorize/:id', to: 'oauth#authorize', as: 'oauth_authorize'
-    get 'oauth/callback', to: 'oauth#callback', as: 'oauth_callback'
+    post "oauth/authorize/:id", to: "oauth#authorize", as: "oauth_authorize"
+    get "oauth/callback", to: "oauth#callback", as: "oauth_callback"
   end
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

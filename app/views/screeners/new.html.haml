@@ -1,0 +1,12 @@
+- content_for :title, "New Screener"
+
+.card
+  .card-header
+    %h1 New Trading Screener
+  .card-body
+    = render "form", screener: @screener
+
+.mt-3
+  = link_to screeners_path, class: "btn btn-secondary" do
+    %i.fas.fa-arrow-left.me-1
+    Back to Screeners

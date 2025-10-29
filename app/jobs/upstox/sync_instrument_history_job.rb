@@ -50,6 +50,11 @@ module Upstox
             to_date: to_date
           )
 
+          instrument.create_intraday_instrument_history(
+            unit: unit,
+            interval: interval
+          )
+
           success_count += 1
           log_info "[InstrumentHistory] Successfully synced #{instrument.symbol}"
 

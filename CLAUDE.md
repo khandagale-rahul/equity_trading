@@ -241,24 +241,27 @@ Key methods in Authentication concern:
 - Enum for `broker`: `{ zerodha: 1, upstox: 2, angel_one: 3 }`
 - `belongs_to :user`
 
-**Setup** (`app/models/setup.rb`):
-- Base model for trading setups/strategies using **Single Table Inheritance (STI)**
+**Screener** (`app/models/screener.rb`):
+- Base model for trading screeners/strategies
 - `belongs_to :user`
-- Stores trading strategy configuration: `type`, `shortlisted_instruments`, `active`, `trades_per_day`
-- `evaluate_rule(master_instrument)` - Evaluates setup rules using Ruby eval()
-  - Executes the `rules` formula string in a safe transaction context
-  - Rules can reference candle data via the SetupConcern technical indicators
-- Subclasses implement specific trading strategies (e.g., `TwoPercentCross`)
+- Stores screener configuration: `name`, `active`, `rules`, `scanned_instrument_ids` (array)
+- `scan` - Scans all master instruments and stores matching IDs in `scanned_instrument_ids`
+  - Evaluates rules in a transaction (with rollback to avoid persisting temp state)
+  - Returns array of filtered master instrument IDs
+- `master_instruments` - Returns scanned instruments ordered by gain percentage (desc)
+- `evaluate_rule(master_instrument)` - Evaluates screener rules using Ruby eval()
+  - Executes the `rules` formula string against the master instrument
+  - Rules can reference technical indicators via the ScreenerConcern modules
+- Users define custom `rules` as text expressions that reference technical indicators
 
-**TwoPercentCross** (`app/models/two_percent_cross.rb`):
-- Specific setup implementation for "2% Cross" trading strategy
-- Inherits from `Setup` model (STI pattern)
-- `rules` method returns Ruby expression string with three conditions:
-  1. Yesterday's gain < 1%: `(previous_candle_close - previous_candle_open)/previous_candle_open * 100 < 1`
-  2. Yesterday's high < 2% above day-before-yesterday's close: `(previous_candle_high - day_before_previous_candle_close)/day_before_previous_candle_close * 100 < 2`
-  3. Today's open < 1% above yesterday's close: `(current_candle_open - previous_candle_close)/previous_candle_close * 100 < 1`
-- `self.initiate` - Class method to evaluate rules across all master instruments
-- `self.is_satisfy_rule?(master_instrument)` - Checks if instrument satisfies the strategy rules using Ruby eval()
+**ScreenerConcern** (`app/models/concerns/screener_concern.rb`):
+- Includes technical indicator modules for use in screener rules
+- Available technical indicators:
+  - `TechnicalIndicators::Close` - Access closing prices via `close(unit, interval, number_of_candles)`
+  - `TechnicalIndicators::Open` - Access opening prices via `open(unit, interval, number_of_candles)`
+  - `TechnicalIndicators::High` - Access high prices via `high(unit, interval, number_of_candles)`
+- Technical indicator methods query `InstrumentHistory` records via `master_instrument` association
+- Parameters: `unit` (day/minute/hour), `interval` (1, 5, 15, etc.), `number_of_candles` (offset from latest)
 
 ### Routes Structure
 
@@ -269,7 +272,7 @@ Key methods in Authentication concern:
 - **Instruments**: Read-only index (`resources :instruments, only: [:index]`) for viewing trading instruments
 - **Holdings**: Read-only (`resources :holdings, only: [:index, :show]`)
 - **Instrument Histories**: Full CRUD (`resources :instrument_histories`)
-- **Setups**: Full CRUD (`resources :setups`) for managing trading strategies
+- **Screeners**: Full CRUD (`resources :screeners`) for managing trading screeners/strategies
 - **Upstox OAuth**:
   - `POST /upstox/oauth/authorize/:id` - Initiates OAuth flow
   - `GET /upstox/oauth/callback` - Handles OAuth callback
@@ -511,7 +514,7 @@ CSS is bundled via `cssbundling-rails`. After pulling changes, run `bin/rails cs
 
 ### Single Table Inheritance (STI) Pattern
 
-The application uses STI for two key domain models:
+The application uses STI for the Instrument domain model:
 
 **Instrument Model STI**:
 - All instruments are stored in the `instruments` table
@@ -519,12 +522,10 @@ The application uses STI for two key domain models:
 - Use `Instrument.create(type: 'UpstoxInstrument', ...)` or `UpstoxInstrument.create(...)`
 - Query all instruments: `Instrument.all`, or specific broker: `UpstoxInstrument.all`
 
-**Setup Model STI**:
-- All trading setups/strategies are stored in the `setups` table
-- The `type` column determines the strategy subclass (`TwoPercentCross`, etc.)
-- Use `Setup.create(type: 'TwoPercentCross', ...)` or `TwoPercentCross.create(...)`
-- Query all setups: `Setup.all`, or specific strategy: `TwoPercentCross.all`
-- Each subclass implements its own `rules` method returning a Ruby expression string
+**Screener Model** (not using STI anymore):
+- All trading screeners are stored in the `screeners` table
+- Users create screeners with custom `rules` text expressions
+- Rules are evaluated dynamically using Ruby `eval()` against master instruments
 
 **UpstoxInstrument** has a class method `import_from_upstox(exchange: "NSE_MIS")` that:
 - Downloads and imports instrument data from Upstox API

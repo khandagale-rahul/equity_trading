@@ -1,0 +1,29 @@
+= form_with(model: screener) do |form|
+  - if screener.errors.any?
+    .alert.alert-danger
+      %h4.alert-heading
+        %i.fas.fa-exclamation-triangle.me-2
+        = pluralize(screener.errors.count, "error")
+        prohibited this screener from being saved:
+      %ul.mb-0
+        - screener.errors.each do |error|
+          %li= error.full_message
+
+  .mb-3
+    .col-md-6
+      = form.label :name, "Screener Name", class: "form-label"
+      = form.text_field :name, class: 'form-control'
+
+  .mb-3
+    .form-check.form-switch
+      = form.check_box :active, class: "form-check-input", role: "switch"
+      = form.label :active, "Active", class: "form-check-label"
+      %small.form-text.text-muted (Enable or disable this trading screener)
+
+  .mb-3
+    = form.label :rules, "Rules", class: "form-label"
+    = form.text_area :rules, class: "form-control font-monospace", rows: 5, placeholder: "Enter formula for rule evaluation"
+
+  %div
+    = form.submit class: "btn btn-primary"
+    = link_to "Cancel", screener.persisted? ? screener_path(screener) : screeners_path, class: "btn btn-secondary ms-2"
