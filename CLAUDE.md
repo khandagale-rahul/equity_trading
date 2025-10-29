@@ -242,7 +242,7 @@ Key methods in Authentication concern:
 - `belongs_to :user`
 
 **Screener** (`app/models/screener.rb`):
-- Base model for trading screeners/strategies
+- Base model for screeners/strategies
 - `belongs_to :user`
 - Stores screener configuration: `name`, `active`, `rules`, `scanned_instrument_ids` (array)
 - `scan` - Scans all master instruments and stores matching IDs in `scanned_instrument_ids`
@@ -272,7 +272,7 @@ Key methods in Authentication concern:
 - **Instruments**: Read-only index (`resources :instruments, only: [:index]`) for viewing trading instruments
 - **Holdings**: Read-only (`resources :holdings, only: [:index, :show]`)
 - **Instrument Histories**: Full CRUD (`resources :instrument_histories`)
-- **Screeners**: Full CRUD (`resources :screeners`) for managing trading screeners/strategies
+- **Screeners**: Full CRUD (`resources :screeners`) for managing screeners/strategies
 - **Upstox OAuth**:
   - `POST /upstox/oauth/authorize/:id` - Initiates OAuth flow
   - `GET /upstox/oauth/callback` - Handles OAuth callback
@@ -523,7 +523,7 @@ The application uses STI for the Instrument domain model:
 - Query all instruments: `Instrument.all`, or specific broker: `UpstoxInstrument.all`
 
 **Screener Model** (not using STI anymore):
-- All trading screeners are stored in the `screeners` table
+- All screeners are stored in the `screeners` table
 - Users create screeners with custom `rules` text expressions
 - Rules are evaluated dynamically using Ruby `eval()` against master instruments
 

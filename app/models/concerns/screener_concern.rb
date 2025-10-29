@@ -4,4 +4,6 @@ module ScreenerConcern
   include TechnicalIndicators::Close
   include TechnicalIndicators::Open
   include TechnicalIndicators::High
+  include TechnicalIndicators::Low
+  include TechnicalIndicators::Ltp
 end

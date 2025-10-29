@@ -1,8 +1,8 @@
 module TechnicalIndicators
-  module Open
+  module Low
     extend ActiveSupport::Concern
 
-    def open(unit, interval, number_of_candles = 0)
+    def low(unit, interval, number_of_candles = 0)
       key = "#{self.master_instrument.id}_#{unit}_#{interval}_#{number_of_candles}"
 
       @calculated_data[key] ||= self.master_instrument.instrument_histories.where(
@@ -12,7 +12,7 @@ module TechnicalIndicators
       .offset(number_of_candles)
       .first
 
-      @calculated_data[key].open
+      @calculated_data[key].low
     end
   end
 end
