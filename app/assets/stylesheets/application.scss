@@ -1,5 +1,5 @@
+@use "bootstrap";
 @import url("admin_lte.css");
-@import "bootstrap";
 
 .form-label {
   margin-bottom: 0.5rem;
@@ -51,7 +51,7 @@ table.table thead th.sortable {
     border: 5px solid rgba(255, 255, 255, 0.3);
     border-top-color: #ffffff;
     border-radius: 50%;
-    animation: spin 0.1s linear infinite;
+    animation: spin 0.8s linear infinite;
   }
 }
 
