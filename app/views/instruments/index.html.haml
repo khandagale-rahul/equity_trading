@@ -17,16 +17,18 @@
           -# .card-header
             -# %h3.card-title Master Instruments
           .card-body
-            .table-responsive
-              %table.table.table-bordered.table-striped.table-hover
+            .table-responsive{"data-controller": "sortable-table"}
+              %table.table.table-bordered.table-striped.table-hover{"data-sortable-table-target": "table"}
                 %thead
                   %tr
                     %th No.
-                    %th= sortable "name", "Name"
-                    %th= sortable "exchange", "Exchange"
-                    %th= sortable "exchange_token", "Exchange Token"
-                    %th= sortable "ltp", "Last Traded Price"
-                    %th= sortable "change_percent", "Changes %"
+                    %th.sortable{"data-action": "click->sortable-table#sort", "data-type": "string"}
+                      Name
+                      %i.bi.bi-arrow-up.ms-1
+                    %th.sortable{"data-action": "click->sortable-table#sort", "data-type": "string"} Exchange
+                    %th.sortable{"data-action": "click->sortable-table#sort", "data-type": "number"} Exchange Token
+                    %th.sortable{"data-action": "click->sortable-table#sort", "data-type": "number"} Last Traded Price
+                    %th.sortable{"data-action": "click->sortable-table#sort", "data-type": "number"} Changes %
                 %tbody
                   - if @master_instruments.any?
                     - @master_instruments.each.with_index do |master_instrument, index|

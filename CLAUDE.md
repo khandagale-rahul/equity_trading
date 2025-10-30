@@ -233,8 +233,11 @@ Key methods in Authentication concern:
 - `create_from_exchange_data(instrument:, exchange:, exchange_token:)` - Creates mapping records
 
 **InstrumentHistory** (`app/models/instrument_history.rb`):
-- Historical price data for instruments
-- `belongs_to :instrument`
+- Historical OHLC price data for instruments
+- `belongs_to :master_instrument`
+- Enum for `unit`: `{ minute: 1, hour: 2, day: 3, week: 4, month: 5 }`
+- Fields: `open`, `high`, `low`, `close`, `volume`, `date`, `unit`, `interval`
+- `previous_candle` - Returns the previous candle for the same instrument/unit/interval combination
 
 **Holding** (`app/models/holding.rb`):
 - User portfolio holdings from brokers
@@ -253,6 +256,10 @@ Key methods in Authentication concern:
   - Executes the `rules` formula string against the master instrument
   - Rules can reference technical indicators via the ScreenerConcern modules
 - Users define custom `rules` as text expressions that reference technical indicators
+- **Security**: `validate_rules_syntax` validation blocks dangerous patterns
+  - Prevents system/command execution, file operations, database writes, network calls, etc.
+  - Tests rules against a sample instrument before saving
+  - Comprehensive pattern matching prevents code injection attacks
 
 **ScreenerConcern** (`app/models/concerns/screener_concern.rb`):
 - Includes technical indicator modules for use in screener rules
@@ -260,8 +267,13 @@ Key methods in Authentication concern:
   - `TechnicalIndicators::Close` - Access closing prices via `close(unit, interval, number_of_candles)`
   - `TechnicalIndicators::Open` - Access opening prices via `open(unit, interval, number_of_candles)`
   - `TechnicalIndicators::High` - Access high prices via `high(unit, interval, number_of_candles)`
+  - `TechnicalIndicators::Low` - Access low prices via `low(unit, interval, number_of_candles)`
+  - `TechnicalIndicators::Ltp` - Access Last Traded Price via `ltp()`
+    - During market hours (9:15 AM - 3:30 PM IST): Fetches live LTP from Redis (via `$redis` global)
+    - Outside market hours: Returns latest closing price from InstrumentHistory
 - Technical indicator methods query `InstrumentHistory` records via `master_instrument` association
-- Parameters: `unit` (day/minute/hour), `interval` (1, 5, 15, etc.), `number_of_candles` (offset from latest)
+- Parameters: `unit` (day/minute/hour/week/month), `interval` (1, 5, 15, etc.), `number_of_candles` (offset from latest)
+- Results are cached in `@calculated_data` hash within the screener evaluation context for performance
 
 ### Routes Structure
 
@@ -486,11 +498,15 @@ The service gracefully falls back to JSON/raw data if protobuf decoding fails, s
 
 ### Global State Variables
 
-The application uses a global variable for WebSocket service management:
+The application uses global variables for service management:
 - `$market_data_service` - Holds the active `Upstox::WebsocketService` instance
-- Created in `Upstox::StartWebsocketConnectionJob`
-- Used for subscribing/unsubscribing to instruments while service is running
-- Set to `nil` when service stops or encounters errors
+  - Created in `Upstox::StartWebsocketConnectionJob`
+  - Used for subscribing/unsubscribing to instruments while service is running
+  - Set to `nil` when service stops or encounters errors
+- `$redis` - Global Redis client instance used by technical indicators
+  - Used to fetch real-time LTP (Last Traded Price) data during market hours
+  - Exchange tokens are stored as keys with LTP as values
+  - Updated by WebSocket service as market data streams in
 
 ### Security Considerations
 - API credentials (`api_key`, `api_secret`) and OAuth tokens (`access_token`) are stored in plaintext in the database. Consider encrypting these with Rails encrypted attributes or a vault solution.

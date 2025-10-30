@@ -19,4 +19,8 @@ class MasterInstrument < ApplicationRecord
     record.save!
     record
   end
+
+  def ltp
+    $redis.call("GET", exchange_token).presence&.to_f || self[:ltp]
+  end
 end

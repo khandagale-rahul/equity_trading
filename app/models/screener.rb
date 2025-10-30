@@ -29,14 +29,7 @@ class Screener < ApplicationRecord
   end
 
   def master_instruments
-    MasterInstrument.joins(:upstox_instrument).where(id: scanned_instrument_ids).order(
-      Arel.sql("
-        CASE
-          WHEN ltp IS NULL OR previous_day_ltp IS NULL OR previous_day_ltp = 0 THEN NULL
-          ELSE ((ltp - previous_day_ltp) / previous_day_ltp) * 100
-        END desc NULLS LAST
-      ")
-    )
+    MasterInstrument.joins(:upstox_instrument).where(id: scanned_instrument_ids)
   end
 
   private
