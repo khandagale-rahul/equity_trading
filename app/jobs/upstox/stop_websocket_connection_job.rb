@@ -29,7 +29,7 @@ module Upstox
     private
 
     def redis_client
-      @redis_client ||= RedisClient.config(url: ENV.fetch("REDIS_URL", "redis://localhost:6379/0")).new_client
+      Redis.client
     end
 
     def force_stop

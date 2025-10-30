@@ -30,9 +30,10 @@ module Upstox
       Thread.new do
         begin
           service = Upstox::WebsocketService.new(api_config.access_token)
+          upstox_identifier_token_mapping = UpstoxInstrument.pluck(:identifier, :exchange_token).to_h
 
           service.on_message do |data|
-            handle_market_data(data)
+            handle_market_data(data, upstox_identifier_token_mapping)
           end
 
           service.on_error do |error|
@@ -121,11 +122,20 @@ module Upstox
     private
 
     def redis_client
-      @redis_client ||= RedisClient.config(url: ENV.fetch("REDIS_URL", "redis://localhost:6379/0")).new_client
+      Redis.client
     end
 
-    def handle_market_data(data)
-      log_debug "[MarketData] Received data: #{data.inspect}"
+    def handle_market_data(data, upstox_identifier_token_mapping)
+      # log_debug "[MarketData] Received data: #{data.inspect}"
+
+      data[:feeds].each do |identifier, detail|
+        log_debug "#{upstox_identifier_token_mapping[identifier]}"
+        redis_client.call(
+          "SET",
+          upstox_identifier_token_mapping[identifier],
+          detail.dig(:ltpc, :ltp)
+        )
+      end
       # Example: Broadcast to ActionCable (if you have a channel set up)
       # ActionCable.server.broadcast("market_data_channel", data)
 
