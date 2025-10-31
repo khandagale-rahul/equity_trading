@@ -5,58 +5,50 @@ export default class extends Controller {
   static targets = ["overlay"]
 
   connect() {
-    // Bind methods to preserve context
-    this.boundShow = this.show.bind(this)
-    this.boundHide = this.hide.bind(this)
+    this.show = this.show.bind(this)
+    this.hide = this.hide.bind(this)
 
-    // Listen to Turbo events for navigation and form submissions
-    document.addEventListener("turbo:submit-start", this.boundShow)
-    document.addEventListener("turbo:submit-end", this.boundHide)
-    document.addEventListener("turbo:before-fetch-request", this.boundShow)
-    document.addEventListener("turbo:before-fetch-response", this.boundHide)
-    document.addEventListener("turbo:frame-load", this.boundHide)
-    document.addEventListener("turbo:load", this.boundHide)
+    // Show loader on any navigation intent
+    document.addEventListener("turbo:before-visit", this.show)
+    document.addEventListener("turbo:submit-start", this.show)
+    document.addEventListener("turbo:before-fetch-request", this.show)
 
-    // Handle browser back/forward navigation and page restoration
-    document.addEventListener("turbo:before-cache", this.boundHide)
-    document.addEventListener("turbo:render", this.boundHide)
-    document.addEventListener("turbo:before-render", this.boundHide)
+    // Hide only when a real fetch responds OR Turbo finishes render
+    document.addEventListener("turbo:fetch-response", this.hide)
+    document.addEventListener("turbo:load", this.hide)
+    document.addEventListener("turbo:frame-render", this.hide)
+    document.addEventListener("turbo:before-cache", this.hide)
 
-    // Handle errors and restore interactivity
-    document.addEventListener("turbo:fetch-request-error", this.boundHide)
-
-    // Handle page visibility changes (tab switching, browser minimize)
-    document.addEventListener("visibilitychange", this.boundHide)
-
-    // Ensure overlay is hidden when page loads/restores from cache
-    this.hide()
+    // Browser back/forward button
+    window.addEventListener("popstate", this.show)
   }
 
   disconnect() {
-    // Clean up event listeners
-    document.removeEventListener("turbo:submit-start", this.boundShow)
-    document.removeEventListener("turbo:submit-end", this.boundHide)
-    document.removeEventListener("turbo:before-fetch-request", this.boundShow)
-    document.removeEventListener("turbo:before-fetch-response", this.boundHide)
-    document.removeEventListener("turbo:frame-load", this.boundHide)
-    document.removeEventListener("turbo:load", this.boundHide)
-    document.removeEventListener("turbo:before-cache", this.boundHide)
-    document.removeEventListener("turbo:render", this.boundHide)
-    document.removeEventListener("turbo:before-render", this.boundHide)
-    document.removeEventListener("turbo:fetch-request-error", this.boundHide)
-    document.removeEventListener("visibilitychange", this.boundHide)
+    document.removeEventListener("turbo:before-visit", this.show)
+    document.removeEventListener("turbo:submit-start", this.show)
+    document.removeEventListener("turbo:before-fetch-request", this.show)
+
+    document.removeEventListener("turbo:fetch-response", this.hide)
+    document.removeEventListener("turbo:load", this.hide)
+    document.removeEventListener("turbo:frame-render", this.hide)
+    document.removeEventListener("turbo:before-cache", this.hide)
+
+    window.removeEventListener("popstate", this.show)
   }
 
   show() {
-    if (this.hasOverlayTarget) {
-      this.overlayTarget.classList.add("active")
-    }
+    if (!this.hasOverlayTarget) return
+    this.overlayTarget.classList.remove("hidden")
+    document.body.style.pointerEvents = "none"
   }
 
   hide() {
-    if (this.hasOverlayTarget) {
-      // Remove active class immediately to prevent stuck overlay
-      this.overlayTarget.classList.remove("active")
-    }
+    if (!this.hasOverlayTarget) return
+
+    // super fast requests avoid flicker
+    setTimeout(() => {
+      this.overlayTarget.classList.add("hidden")
+      document.body.style.pointerEvents = "auto"
+    }, 40)
   }
 }

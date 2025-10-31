@@ -3,6 +3,14 @@ module ApplicationHelper
     Current.session&.user
   end
 
+  def nav_link(link, options = {}, &block)
+    options[:class] += " active" if current_page?(link)
+
+    link_to link, **options do
+      capture(&block)
+    end
+  end
+
   def sortable(column, title = nil)
     title ||= column.titleize
     direction = column == params[:sort] && params[:direction] == "asc" ? "desc" : "asc"

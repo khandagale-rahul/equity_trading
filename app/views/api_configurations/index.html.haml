@@ -4,8 +4,11 @@
 
 .card
   .card-header
-    %h1 Api configurations
-    = link_to "New api configuration", new_api_configuration_path
+    .row
+      .col-12
+        .d-flex.justify-content-between.align-items-center
+          %h1 Api configurations
+          = link_to "Add New Configuration", new_api_configuration_path, class: "btn btn-primary"
   .card-body
     - if @api_configurations.empty?
       %p No API configurations found.

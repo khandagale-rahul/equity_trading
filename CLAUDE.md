@@ -285,6 +285,7 @@ Key methods in Authentication concern:
 - **Holdings**: Read-only (`resources :holdings, only: [:index, :show]`)
 - **Instrument Histories**: Full CRUD (`resources :instrument_histories`)
 - **Screeners**: Full CRUD (`resources :screeners`) for managing screeners/strategies
+  - `GET /screeners/:id/scan` - Executes the screener scan against all master instruments
 - **Upstox OAuth**:
   - `POST /upstox/oauth/authorize/:id` - Initiates OAuth flow
   - `GET /upstox/oauth/callback` - Handles OAuth callback

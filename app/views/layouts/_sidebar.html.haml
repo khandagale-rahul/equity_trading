@@ -7,24 +7,24 @@
       / begin::Sidebar Menu
       %ul#navigation.nav.sidebar-menu.flex-column{"aria-label" => "Main navigation", "data-accordion" => "false", "data-lte-toggle" => "treeview", role: "navigation"}
         %li.nav-item
-          = link_to root_path, class: "nav-link" do
+          = nav_link(root_path, class: "nav-link") do
             %i.nav-icon.bi.bi-speedometer
             %p Dashboard
         %li.nav-item
-          = link_to api_configurations_path, class: 'nav-link' do
-            %i.nav-icon.bi.bi-palette
+          = nav_link(api_configurations_path, class: 'nav-link') do
+            %i.nav-icon.bi.bi-key
             %p API Configuration
         %li.nav-item
-          = link_to instruments_path(direction: :asc, sort: :name), class: 'nav-link' do
-            %i.nav-icon.bi.bi-list-ul
+          = nav_link(instruments_path, class: 'nav-link') do
+            %i.nav-icon.bi.bi-graph-up
             %p Stocks
         %li.nav-item
-          = link_to holdings_path, class: 'nav-link' do
+          = nav_link(holdings_path, class: 'nav-link') do
             %i.nav-icon.bi.bi-briefcase
             %p Holdings
         %li.nav-item
-          = link_to screeners_path, class: 'nav-link' do
-            %i.nav-icon.bi.bi-speedometer
+          = nav_link(screeners_path, class: 'nav-link') do
+            %i.nav-icon.bi.bi-funnel
             %p Screeners
 
 :javascript
