@@ -8,6 +8,10 @@ export default class extends Controller {
     this.show = this.show.bind(this)
     this.hide = this.hide.bind(this)
 
+    // Show immediately when user interacts
+    document.addEventListener("click", this.show, { capture: true })
+    document.addEventListener("submit", this.show, { capture: true })
+
     // Show loader on any navigation intent
     document.addEventListener("turbo:before-visit", this.show)
     document.addEventListener("turbo:submit-start", this.show)
@@ -24,6 +28,9 @@ export default class extends Controller {
   }
 
   disconnect() {
+    document.removeEventListener("click", this.show, { capture: true })
+    document.removeEventListener("submit", this.show, { capture: true })
+
     document.removeEventListener("turbo:before-visit", this.show)
     document.removeEventListener("turbo:submit-start", this.show)
     document.removeEventListener("turbo:before-fetch-request", this.show)
@@ -36,13 +43,15 @@ export default class extends Controller {
     window.removeEventListener("popstate", this.show)
   }
 
-  show() {
+  show(event) {
     if (!this.hasOverlayTarget) return
+
     this.overlayTarget.classList.remove("hidden")
+    this.overlayTarget.offsetHeight
     document.body.style.pointerEvents = "none"
   }
 
-  hide() {
+  hide(event) {
     if (!this.hasOverlayTarget) return
 
     // super fast requests avoid flicker

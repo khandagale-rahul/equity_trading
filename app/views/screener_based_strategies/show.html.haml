@@ -1,0 +1,45 @@
+%p{style: "color: green"}= notice
+
+- content_for :title, "Strategy - #{@strategy.name}"
+
+.card
+  .card-header
+    %h1
+      = @strategy.name
+      Strategy
+    .text-muted
+      Type:
+      %span.badge.bg-info= @strategy.type&.split('::')&.last || @strategy.type
+  .card-body
+    %table.table.table-bordered
+      %tbody
+        %tr
+          %th{style: "width: 20%"} Strategy Name
+          %td= @strategy.name
+        %tr
+          %th Type
+          %td
+            %span.badge.bg-info= @strategy.type&.split('::')&.last || @strategy.type
+        %tr
+          %th Description
+          %td= (simple_format(@strategy.description) rescue nil)
+        %tr
+          %th Screener
+          %td
+            = link_to @strategy.screener.name, screener_path(@strategy.screener)
+            %br
+            %span.text-muted
+              Rules
+              %pre.bg-light.p-2.rounded= @strategy.screener.rules
+  .card-footer
+    .float-start
+      = link_to edit_strategy_path(@strategy), class: "btn btn-warning me-2" do
+        %i.fas.fa-edit.me-1
+        Edit
+      = link_to strategies_path, class: "btn btn-secondary me-2" do
+        %i.fas.fa-arrow-left.me-1
+        Back
+    .float-end
+      = button_to @strategy, method: :delete, class: "btn btn-danger", form: { style: "display: inline-block;" }, data: { turbo_confirm: "Are you sure you want to delete this strategy?" } do
+        %i.fas.fa-trash.me-1
+        Delete

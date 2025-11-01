@@ -1,4 +1,9 @@
 Rails.application.routes.draw do
+  resources :strategies
+  resources :instrument_based_strategies # , controller: "instrument_based_strategies"
+  resources :rule_based_strategies # , controller: "rule_based_strategies"
+  resources :screener_based_strategies # , controller: "screener_based_strategies"
+
   resources :screeners do
     member do
       get :scan

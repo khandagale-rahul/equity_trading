@@ -1,0 +1,2 @@
+class ScreenerBasedStrategiesController < StrategiesController
+end

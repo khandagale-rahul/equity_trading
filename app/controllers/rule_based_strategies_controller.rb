@@ -1,0 +1,2 @@
+class RuleBasedStrategiesController < StrategiesController
+end
