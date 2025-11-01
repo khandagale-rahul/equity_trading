@@ -6,6 +6,8 @@ class CreateStrategies < ActiveRecord::Migration[8.0]
       t.references :user, null: false, foreign_key: true
       t.jsonb :parameters, default: {}
       t.text :description
+      t.text :entry_rule
+      t.text :exit_rule
 
       t.timestamps
     end

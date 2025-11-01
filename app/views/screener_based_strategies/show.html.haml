@@ -26,11 +26,41 @@
         %tr
           %th Screener
           %td
-            = link_to @strategy.screener.name, screener_path(@strategy.screener)
-            %br
-            %span.text-muted
-              Rules
-              %pre.bg-light.p-2.rounded= @strategy.screener.rules
+            %table.table.table-bordered
+              %tbody
+                %tr
+                  %td Screener
+                  %td= link_to @strategy.screener.name, screener_path(@strategy.screener)
+                %tr
+                  %td Execution Time
+                  %td= Time.parse(@strategy.screener_execution_time).strftime("%I:%M %p")
+                %tr
+                  %td Rule
+                  %td
+                    %pre.bg-light.p-2.rounded= @strategy.screener.rules
+                %tr
+                  %td Filtered Instruments
+                  %td
+                    - if @strategy.master_instrument_ids.present?
+                      .table-responsive
+                        %table.table.table-bordered.table-striped.table-hover.table-sm
+                          %thead
+                            %tr
+                              %th No.
+                              %th Name
+                              %th Exchange
+                              %th Exchange Token
+                              %th Last Traded Price
+                              %th Changes %
+                          %tbody
+                            - @strategy.master_instruments.each.with_index do |master_instrument, index|
+                              %tr
+                                %td= index + 1
+                                %td= master_instrument.name
+                                %td= master_instrument.exchange
+                                %td= master_instrument.exchange_token
+                                %td= display_ltp(master_instrument)
+                                %td= display_price_change(master_instrument)
   .card-footer
     .float-start
       = link_to edit_strategy_path(@strategy), class: "btn btn-warning me-2" do

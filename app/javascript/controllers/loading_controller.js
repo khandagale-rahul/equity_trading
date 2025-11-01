@@ -8,10 +8,6 @@ export default class extends Controller {
     this.show = this.show.bind(this)
     this.hide = this.hide.bind(this)
 
-    // Show immediately when user interacts
-    document.addEventListener("click", this.show, { capture: true })
-    document.addEventListener("submit", this.show, { capture: true })
-
     // Show loader on any navigation intent
     document.addEventListener("turbo:before-visit", this.show)
     document.addEventListener("turbo:submit-start", this.show)
@@ -28,9 +24,6 @@ export default class extends Controller {
   }
 
   disconnect() {
-    document.removeEventListener("click", this.show, { capture: true })
-    document.removeEventListener("submit", this.show, { capture: true })
-
     document.removeEventListener("turbo:before-visit", this.show)
     document.removeEventListener("turbo:submit-start", this.show)
     document.removeEventListener("turbo:before-fetch-request", this.show)

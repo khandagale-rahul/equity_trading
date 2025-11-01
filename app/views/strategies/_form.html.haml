@@ -8,34 +8,57 @@
 
   .card
     .card-body
-      .row
-        .col-md-5
-          .form-group.mb-3
+      .row.mb-3
+        .col-md-6
+          .form-group
             = form.label :name, class: "required form-label"
             = form.text_field :name, class: "form-control", placeholder: "Enter strategy name", required: true
-        .col-md-4
-          .form-group.mb-3
+        .col-md-6
+          .form-group
             - if strategy.new_record?
               = form.label :type, "Strategy Type", class: "required form-label"
-              = form.select :type, [["Instrument Based", "InstrumentBasedStrategy"], ["Rule Based", "RuleBasedStrategy"], ["Screener Based", "ScreenerBasedStrategy"]], { prompt: "Select strategy type" }, { class: "form-control", required: true, id: "strategy_type" }
+              = form.select :type,
+                            [["Instrument Based", "InstrumentBasedStrategy"], ["Rule Based", "RuleBasedStrategy"], ["Screener Based", "ScreenerBasedStrategy"]],
+                            { prompt: "Select Strategy Type" },
+                            { class: "form-control select2", id: "strategy_type", required: true }
             - else
               = form.label :type, "Strategy Type", class: "required form-label"
               = text_field_tag :type, strategy.type.titleize, class: "form-control", disabled: true
-      .row
-        .col-md-5
-          .form-group.mb-3
-            = form.label :description, class: "form-label"
-            = form.text_area :description, class: "form-control", rows: 4, placeholder: "Enter strategy description"
-        .col-md-7
-          .form-group.mb-3#instrument_selection{style: strategy.is_a?(InstrumentBasedStrategy) ? "" : "display: none;"}
-            = form.label :master_instrument_ids, "Select Instruments", class: "form-label"
-            = form.select :master_instrument_ids, options_for_select(@master_instruments.map { |mi| [mi.name, mi.id] }, strategy.is_a?(InstrumentBasedStrategy) ? strategy.master_instrument_ids : []), {}, { multiple: true, class: "form-control select2", id: "master_instrument_ids" }
-            %small.form-text.text-muted Search and select multiple instruments
 
-          .form-group.mb-3#screener_selection{style: strategy.is_a?(ScreenerBasedStrategy) ? "" : "display: none;"}
-            = form.label :screener_id, "Select Screener", class: "form-label"
-            = form.select :screener_id, options_for_select(@screeners.map { |mi| [mi.name, mi.id] }, strategy.is_a?(ScreenerBasedStrategy) ? strategy.screener_id : nil), {}, { multiple: false, class: "form-control select2", id: "screener_id" }
-            %small.form-text.text-muted Search and select multiple screeners
+      #instrument_selection{style: strategy.is_a?(InstrumentBasedStrategy) ? "" : "display: none;"}
+        .row.mb-3
+          .col-md-12
+            .form-group
+              = form.label :master_instrument_ids, "Select Instruments", class: "form-label"
+              = form.select :master_instrument_ids,
+                            options_for_select(@master_instruments.map { |mi| [mi.name, mi.id] }, strategy.is_a?(InstrumentBasedStrategy) ? strategy.master_instrument_ids : []),
+                            {},
+                            { multiple: true, class: "form-control select2", id: "master_instrument_ids" }
+              %small.form-text.text-muted Search and select multiple instruments
+      #screener_selection{style: strategy.is_a?(ScreenerBasedStrategy) ? "" : "display: none;"}
+        .row.mb-3
+          .col-md-6
+            .form-group
+              = form.label :screener_id, "Select Screener", class: "form-label"
+              = form.select :screener_id,
+                            options_for_select(@screeners.map { |mi| [mi.name, mi.id] }, strategy.is_a?(ScreenerBasedStrategy) ? strategy.screener_id : nil),
+                            {},
+                            { multiple: false, class: "form-control select2", id: "screener_id" }
+              %small.form-text.text-muted Search and select multiple screeners
+          .col-md-6
+            .form-group
+              = form.label :screener_execution_time, "Screener Execution Time", class: "form-label"
+              .d-flex.gap-2
+                = form.time_field :screener_execution_time,
+                                  class: "form-control",
+                                  style: "width: auto;"
+              %small.form-text.text-muted Select the time to run the screener
+
+      .row.mb-3
+        .col-md-6
+          .form-group
+            = form.label :description, class: "form-label"
+            = form.text_area :description, class: "form-control", rows: 2, placeholder: "Enter strategy description"
 
     .card-footer
       = form.submit :submit, class: "btn btn-primary"
@@ -43,22 +66,23 @@
 
 :javascript
   function toggleStrategyFields() {
-    const strategyTypeSelect = document.getElementById('strategy_type');
     const instrumentSelection = document.getElementById('instrument_selection');
     const screenerSelection = document.getElementById('screener_selection');
 
-    if (strategyTypeSelect) {
-      strategyTypeSelect.addEventListener('change', function() {
-        if (screenerSelection) screenerSelection.style.display = 'none';
-        if (instrumentSelection) instrumentSelection.style.display = 'none';
+    $('#strategy_type').on('select2:select', function(e) {
+      const selectedValue = e.params.data.id;
 
-        if (this.value === 'InstrumentBasedStrategy') {
-          if (instrumentSelection) instrumentSelection.style.display = 'block';
-        } else if (this.value === 'ScreenerBasedStrategy') {
-          if (screenerSelection) screenerSelection.style.display = 'block';
-        }
-      });
-    }
+      if (selectedValue === 'InstrumentBasedStrategy') {
+        if (screenerSelection) screenerSelection.style.display = 'none';
+        if (instrumentSelection) instrumentSelection.style.display = 'block';
+      } else if (selectedValue === 'ScreenerBasedStrategy') {
+        if (instrumentSelection) instrumentSelection.style.display = 'none';
+        if (screenerSelection) screenerSelection.style.display = 'block';
+      } else {
+        if (instrumentSelection) instrumentSelection.style.display = 'none';
+        if (screenerSelection) screenerSelection.style.display = 'none';
+      }
+    });
   }
 
   document.addEventListener('DOMContentLoaded', function() {

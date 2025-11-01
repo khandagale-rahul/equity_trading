@@ -19,7 +19,6 @@ class StrategiesController < ApplicationController
 
   def create
     @strategy = current_user.strategies.new(strategy_params)
-
     if @strategy.save
       redirect_to @strategy, notice: "Strategy was successfully created."
     else
@@ -29,8 +28,6 @@ class StrategiesController < ApplicationController
   end
 
   def update
-    @strategy.type = strategy_params[:type]
-
     if @strategy.update(strategy_params)
       redirect_to @strategy, notice: "Strategy was successfully updated.", status: :see_other
     else
@@ -50,19 +47,22 @@ class StrategiesController < ApplicationController
     end
 
     def strategy_params
-      if params.dig(:strategy, :type) == "InstrumentBasedStrategy"
+      strategy_type = params.dig(:strategy, :type) || @strategy.type
+
+      if strategy_type == "InstrumentBasedStrategy"
         params.require(:strategy).permit(
           :name,
           :type,
           :description,
           master_instrument_ids: []
         )
-      elsif params.dig(:strategy, :type) == "ScreenerBasedStrategy"
+      elsif strategy_type == "ScreenerBasedStrategy"
         params.require(:strategy).permit(
           :name,
           :type,
           :description,
           :screener_id,
+          :screener_execution_time
         )
       else
         params.require(:strategy).permit(

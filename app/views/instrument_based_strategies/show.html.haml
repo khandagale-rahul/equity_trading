@@ -23,29 +23,28 @@
         %tr
           %th Description
           %td= (simple_format(@strategy.description) rescue nil)
-        - if @strategy.is_a?(InstrumentBasedStrategy) && @strategy.master_instrument_ids.present?
-          %tr
-            %th Selected Instruments
-            %td
-              .table-responsive
-                %table.table.table-bordered.table-striped.table-hover.table-sm
-                  %thead
+        %tr
+          %th Selected Instruments
+          %td
+            .table-responsive
+              %table.table.table-bordered.table-striped.table-hover.table-sm
+                %thead
+                  %tr
+                    %th No.
+                    %th Name
+                    %th Exchange
+                    %th Exchange Token
+                    %th Last Traded Price
+                    %th Changes %
+                %tbody
+                  - @master_instruments.each.with_index do |master_instrument, index|
                     %tr
-                      %th No.
-                      %th Name
-                      %th Exchange
-                      %th Exchange Token
-                      %th Last Traded Price
-                      %th Changes %
-                  %tbody
-                    - @master_instruments.each.with_index do |master_instrument, index|
-                      %tr
-                        %td= index + 1
-                        %td= master_instrument.name
-                        %td= master_instrument.exchange
-                        %td= master_instrument.exchange_token
-                        %td= display_ltp(master_instrument)
-                        %td= display_price_change(master_instrument)
+                      %td= index + 1
+                      %td= master_instrument.name
+                      %td= master_instrument.exchange
+                      %td= master_instrument.exchange_token
+                      %td= display_ltp(master_instrument)
+                      %td= display_price_change(master_instrument)
         - elsif @strategy.parameters.present?
           %tr
             %th Parameters

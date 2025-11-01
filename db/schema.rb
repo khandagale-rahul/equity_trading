@@ -121,6 +121,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_31_110318) do
     t.text "description"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "entry_rule"
+    t.text "exit_rule"
     t.index ["user_id"], name: "index_strategies_on_user_id"
   end
 
