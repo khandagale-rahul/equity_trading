@@ -100,7 +100,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_31_110318) do
     t.text "rules"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.integer "scanned_instrument_ids", default: [], array: true
+    t.integer "scanned_master_instrument_ids", default: [], array: true
+    t.datetime "scanned_at"
     t.index ["user_id"], name: "index_screeners_on_user_id"
   end
 
@@ -123,6 +124,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_31_110318) do
     t.datetime "updated_at", null: false
     t.text "entry_rule"
     t.text "exit_rule"
+    t.integer "master_instrument_ids", default: [], array: true
     t.index ["user_id"], name: "index_strategies_on_user_id"
   end
 

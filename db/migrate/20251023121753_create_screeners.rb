@@ -5,7 +5,8 @@ class CreateScreeners < ActiveRecord::Migration[8.0]
       t.references :user, null: false, foreign_key: true
       t.boolean :active, default: true
       t.text :rules
-      t.integer :scanned_instrument_ids, array: true, default: []
+      t.integer :scanned_master_instrument_ids, array: true, default: []
+      t.datetime :scanned_at
 
       t.timestamps
     end

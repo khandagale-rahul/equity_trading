@@ -24,6 +24,14 @@
           %th Description
           %td= (simple_format(@strategy.description) rescue nil)
         %tr
+          %td Entry Rule
+          %td
+            %pre.bg-light.p-2.rounded= @strategy.entry_rule
+        %tr
+          %td Exit Rule
+          %td
+            %pre.bg-light.p-2.rounded= @strategy.exit_rule
+        %tr
           %th Screener
           %td
             %table.table.table-bordered
@@ -33,7 +41,7 @@
                   %td= link_to @strategy.screener.name, screener_path(@strategy.screener)
                 %tr
                   %td Execution Time
-                  %td= Time.parse(@strategy.screener_execution_time).strftime("%I:%M %p")
+                  %td= @strategy.screener_execution_time
                 %tr
                   %td Rule
                   %td
@@ -61,6 +69,7 @@
                                 %td= master_instrument.exchange_token
                                 %td= display_ltp(master_instrument)
                                 %td= display_price_change(master_instrument)
+
   .card-footer
     .float-start
       = link_to edit_strategy_path(@strategy), class: "btn btn-warning me-2" do

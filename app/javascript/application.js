@@ -41,6 +41,11 @@ document.addEventListener('turbo:load', function() {
   initializeSelect2();
 });
 
+// Re-initialize after form render (handles 422 errors)
+document.addEventListener('turbo:render', function() {
+  initializeSelect2();
+});
+
 // Clean up Select2 before Turbo caches the page
 document.addEventListener('turbo:before-cache', function() {
   if (typeof $ !== 'undefined' && typeof $.fn.select2 !== 'undefined') {

@@ -49,29 +49,24 @@ class StrategiesController < ApplicationController
     def strategy_params
       strategy_type = params.dig(:strategy, :type) || @strategy.type
 
-      if strategy_type == "InstrumentBasedStrategy"
-        params.require(:strategy).permit(
-          :name,
-          :type,
-          :description,
-          master_instrument_ids: []
-        )
-      elsif strategy_type == "ScreenerBasedStrategy"
-        params.require(:strategy).permit(
-          :name,
-          :type,
-          :description,
-          :screener_id,
-          :screener_execution_time
-        )
+      base_attrs = [
+        :name,
+        :type,
+        :description,
+        :entry_rule,
+        :exit_rule
+      ]
+
+      base_attrs << case strategy_type
+      when "InstrumentBasedStrategy"
+        [ { master_instrument_ids: [] } ]
+      when "ScreenerBasedStrategy"
+        [ :screener_id, :screener_execution_time ]
       else
-        params.require(:strategy).permit(
-          :name,
-          :type,
-          :description,
-          :rules
-        )
+        [ :rules ]
       end
+
+      params.require(:strategy).permit(*base_attrs.flatten)
     end
 
     def set_prerequisites

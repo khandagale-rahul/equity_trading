@@ -18,6 +18,7 @@ export default class extends Controller {
     document.addEventListener("turbo:load", this.hide)
     document.addEventListener("turbo:frame-render", this.hide)
     document.addEventListener("turbo:before-cache", this.hide)
+    document.addEventListener('turbo:render', this.hide)
 
     // Browser back/forward button
     window.addEventListener("popstate", this.show)
@@ -32,6 +33,7 @@ export default class extends Controller {
     document.removeEventListener("turbo:load", this.hide)
     document.removeEventListener("turbo:frame-render", this.hide)
     document.removeEventListener("turbo:before-cache", this.hide)
+    document.removeEventListener('turbo:render', this.hide)
 
     window.removeEventListener("popstate", this.show)
   }

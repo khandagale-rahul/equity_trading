@@ -4,6 +4,7 @@ class CreateStrategies < ActiveRecord::Migration[8.0]
       t.string :name
       t.string :type, null: false
       t.references :user, null: false, foreign_key: true
+      t.integer :master_instrument_ids, array: true, default: []
       t.jsonb :parameters, default: {}
       t.text :description
       t.text :entry_rule
