@@ -14,7 +14,8 @@ module EquityTrading
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.
-    config.autoload_lib(ignore: %w[assets tasks])
+    # Ignore protobuf directory - these files don't follow Zeitwerk naming conventions
+    config.autoload_lib(ignore: %w[assets tasks protobuf])
 
     # Configuration for the application, engines, and railties goes here.
     #
@@ -33,5 +34,7 @@ module EquityTrading
                        request_specs: false
       g.fixture_replacement :factory_bot, dir: "spec/factories"
     end
+
+    config.active_record.yaml_column_permitted_classes = [ Time ]
   end
 end

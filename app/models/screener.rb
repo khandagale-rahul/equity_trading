@@ -1,4 +1,6 @@
 class Screener < ApplicationRecord
+  has_paper_trail
+
   include ScreenerConcern
   include RuleEvaluationConcern
 

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
-class CleanupJobLogsJob < ApplicationJob
+class CleanupJobLogsJob
+  include Sidekiq::Job
   queue_as :default
 
   def perform(days: 7)

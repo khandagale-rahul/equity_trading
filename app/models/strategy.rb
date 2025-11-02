@@ -1,4 +1,6 @@
 class Strategy < ApplicationRecord
+  has_paper_trail
+
   include StrategyConcern
   include RuleEvaluationConcern
 

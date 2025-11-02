@@ -1,5 +1,6 @@
 module Upstox
-  class HealthCheckWebsocketConnectionJob < ApplicationJob
+  class HealthCheckWebsocketConnectionJob
+    include Sidekiq::Job
     include JobLogger
 
     queue_as :market_data

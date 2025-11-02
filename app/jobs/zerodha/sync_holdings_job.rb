@@ -1,5 +1,6 @@
 module Zerodha
-  class SyncHoldingsJob < ApplicationJob
+  class SyncHoldingsJob
+    include Sidekiq::Job
     include JobLogger
 
     queue_as :default

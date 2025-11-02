@@ -1,5 +1,6 @@
 module Upstox
-  class StopWebsocketConnectionJob < ApplicationJob
+  class StopWebsocketConnectionJob
+    include Sidekiq::Job
     include JobLogger
 
     queue_as :market_data
