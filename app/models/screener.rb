@@ -69,8 +69,8 @@ class Screener < ApplicationRecord
         return unless rules.present?
 
         self.master_instrument = master_instrument
-        result = eval(rules.squish)
-      rescue
+        result = instance_eval(rules.squish)
+      rescue SyntaxError, StandardError => e
         errors.add(:rules, "is invalid")
       end
 

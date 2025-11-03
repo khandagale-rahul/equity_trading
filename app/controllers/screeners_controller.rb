@@ -41,7 +41,7 @@ class ScreenersController < ApplicationController
 
   def scan
     @screener.scan
-    @master_instruments = @screener.master_instruments
+    @scanned_master_instruments = @screener.scanned_master_instruments
     redirect_to @screener, notice: "Scanned Successfully"
   end
 

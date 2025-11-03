@@ -2,14 +2,14 @@ module TechnicalIndicators
   module Close
     extend ActiveSupport::Concern
 
-    def close(unit, interval, number_of_candles = 0)
-      key = "#{self.master_instrument.id}_#{unit}_#{interval}_#{number_of_candles}"
+    def close(unit, interval, candle_number = 0)
+      key = "#{self.master_instrument.id}_#{unit}_#{interval}_#{candle_number}"
 
       @calculated_data[key] ||= self.master_instrument.instrument_histories.where(
         unit: unit,
         interval: interval
       ).order(date: :desc)
-      .offset(number_of_candles)
+      .offset(candle_number)
       .first
 
       @calculated_data[key].close

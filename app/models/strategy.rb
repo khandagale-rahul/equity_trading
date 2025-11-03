@@ -90,8 +90,8 @@ class Strategy < ApplicationRecord
 
       begin
         self.master_instrument = master_instrument
-        result = eval(send(rule_type).squish)
-      rescue
+        result = instance_eval(send(rule_type).squish)
+      rescue SyntaxError, StandardError => e
         errors.add(rule_type, "is invalid")
       end
 

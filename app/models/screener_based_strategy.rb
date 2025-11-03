@@ -24,6 +24,7 @@ class ScreenerBasedStrategy < Strategy
     return unless screener.present?
 
     self.master_instrument_ids = screener.scan
+    self.save
   end
 
   private
