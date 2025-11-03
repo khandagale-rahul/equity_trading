@@ -157,19 +157,19 @@ GEM
       raabro (~> 1.4)
     globalid (1.3.0)
       activesupport (>= 6.1)
-    google-protobuf (4.32.1)
+    google-protobuf (4.33.0)
       bigdecimal
       rake (>= 13)
-    google-protobuf (4.32.1-aarch64-linux-gnu)
+    google-protobuf (4.33.0-aarch64-linux-gnu)
       bigdecimal
       rake (>= 13)
-    google-protobuf (4.32.1-aarch64-linux-musl)
+    google-protobuf (4.33.0-aarch64-linux-musl)
       bigdecimal
       rake (>= 13)
-    google-protobuf (4.32.1-x86_64-linux-gnu)
+    google-protobuf (4.33.0-x86_64-linux-gnu)
       bigdecimal
       rake (>= 13)
-    google-protobuf (4.32.1-x86_64-linux-musl)
+    google-protobuf (4.33.0-x86_64-linux-musl)
       bigdecimal
       rake (>= 13)
     haml (6.3.0)
@@ -334,7 +334,7 @@ GEM
       tsort (>= 0.2)
       zeitwerk (~> 2.6)
     rainbow (3.1.1)
-    rake (13.3.0)
+    rake (13.3.1)
     rdoc (6.15.0)
       erb
       psych (>= 4.0.0)
@@ -520,7 +520,7 @@ DEPENDENCIES
   factory_bot_rails
   faker
   faye-websocket (~> 0.12.0)
-  google-protobuf (~> 4.32.1)
+  google-protobuf (~> 4.33.0)
   haml-rails (~> 3.0.0)
   importmap-rails (~> 2.2.2)
   kamal
