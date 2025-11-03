@@ -20,7 +20,8 @@
                   %th Name
                   %th Type
                   %th Description
-                  %th{style: "width: 120px;"} Actions
+                  %th Deploy Status
+                  %th{style: "width: 200px;"} Actions
               %tbody
                 - @strategies.each do |strategy|
                   %tr
@@ -30,7 +31,24 @@
                     %td{style: "white-space: normal; word-wrap: break-word; max-width: 400px;"}
                       = strategy.description.present? ? truncate(strategy.description, length: 100) : "-"
                     %td
+                      - if strategy.deploy
+                        %span.badge.bg-success
+                          %i.fas.fa-check-circle.me-1
+                          Deployed
+                      - else
+                        %span.badge.bg-secondary
+                          %i.fas.fa-times-circle.me-1
+                          Not Deployed
+                    %td
                       .d-flex.gap-1
+                        - if strategy.deploy
+                          = button_to strategy_path(strategy), method: :patch, params: { strategy: { deploy: false } }, class: "btn btn-sm btn-secondary", title: "Undeploy Strategy" do
+                            %i.fas.fa-stop.me-1
+                            Undeploy
+                        - else
+                          = button_to strategy_path(strategy), method: :patch, params: { strategy: { deploy: true } }, class: "btn btn-sm btn-success", title: "Deploy Strategy" do
+                            %i.fas.fa-play.me-1
+                            Deploy
                         = link_to edit_strategy_path(strategy), class: "btn btn-sm btn-warning" do
                           %i.fas.fa-edit
                         = button_to strategy, method: :delete, class: "btn btn-sm btn-danger", form: { style: "display: inline-block;" }, data: { turbo_confirm: "Are you sure?" } do

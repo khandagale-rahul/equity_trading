@@ -1,0 +1,2 @@
+class PushNotification < Notification
+end

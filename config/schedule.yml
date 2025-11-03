@@ -7,6 +7,12 @@ start_market_data:
   queue: "market_data"
   description: "Start Upstox WebSocket market data feed at market open"
 
+execute_strategy_entry_rules:
+  cron: "15 9 * * 1-5"  # 9:15 AM Monday-Friday
+  class: "ExecuteStrategyEntryRulesJob"
+  queue: "default"
+  description: "Execute entry rules for all deployed strategies at market open"
+
 stop_market_data:
   cron: "30 15 * * 1-5"  # 3:30 PM Monday-Friday
   class: "Upstox::StopWebsocketConnectionJob"

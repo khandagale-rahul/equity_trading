@@ -24,6 +24,17 @@
           %th Description
           %td= (simple_format(@strategy.description) rescue nil)
         %tr
+          %th Deploy Status
+          %td
+            - if @strategy.deploy
+              %span.badge.bg-success
+                %i.fas.fa-check-circle.me-1
+                Deployed
+            - else
+              %span.badge.bg-secondary
+                %i.fas.fa-times-circle.me-1
+                Not Deployed
+        %tr
           %th Entry Rule
           %td
             %pre.bg-light.p-2.rounded= @strategy.entry_rule

@@ -61,6 +61,7 @@ gem "bootstrap", "~> 5.3.3"
 gem "rest-client", "~> 2.1.0"
 gem "csv", "~> 3.3.5"
 gem "paper_trail", "~> 17.0.0"
+gem "async", "~> 2.34.0"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem

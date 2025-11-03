@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_02_114715) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_03_104416) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -93,6 +93,18 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_02_114715) do
     t.index ["zerodha_instrument_id"], name: "index_master_instruments_on_zerodha_instrument_id", unique: true
   end
 
+  create_table "notifications", force: :cascade do |t|
+    t.string "type", null: false
+    t.bigint "user_id", null: false
+    t.string "item_type", null: false
+    t.bigint "item_id", null: false
+    t.jsonb "data"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["item_type", "item_id"], name: "index_notifications_on_item"
+    t.index ["user_id"], name: "index_notifications_on_user_id"
+  end
+
   create_table "screeners", force: :cascade do |t|
     t.string "name"
     t.bigint "user_id", null: false
@@ -125,6 +137,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_02_114715) do
     t.text "entry_rule"
     t.text "exit_rule"
     t.integer "master_instrument_ids", default: [], array: true
+    t.boolean "deployed", default: false, null: false
+    t.integer "entered_master_instrument_ids", default: [], array: true
+    t.integer "existed_master_instrument_ids", default: [], array: true
+    t.integer "re_enter", default: 0, null: false
+    t.integer "daily_max_entries", default: 5, null: false
     t.index ["user_id"], name: "index_strategies_on_user_id"
   end
 
@@ -154,6 +171,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_02_114715) do
   add_foreign_key "api_configurations", "users"
   add_foreign_key "holdings", "users"
   add_foreign_key "instrument_histories", "master_instruments"
+  add_foreign_key "notifications", "users"
   add_foreign_key "screeners", "users"
   add_foreign_key "sessions", "users"
   add_foreign_key "strategies", "users"

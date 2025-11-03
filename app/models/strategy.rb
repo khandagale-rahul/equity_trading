@@ -8,21 +8,27 @@ class Strategy < ApplicationRecord
 
   belongs_to :user
 
+  has_many :notifications
+  has_many :push_notifications
+
   validates :entry_rule,
             :exit_rule,
             presence: true
   validate :validate_entry_rule
   validate :validate_exit_rule
 
-  def master_instruments
-    MasterInstrument.where(id: master_instrument_ids)
+  scope :deployed, -> { where(deployed: true) }
+  scope :executable, -> { deployed.where.not(master_instrument_ids: []) }
+
+  def master_instruments(instruments_ids = self.master_instrument_ids)
+    MasterInstrument.where(id: instruments_ids)
   end
 
-  def evaluate_entry_rule(market_data)
+  def evaluate_entry_rule(instruments_ids = self.master_instrument_ids)
     filtered_master_instrument_ids = []
 
     ActiveRecord::Base.transaction(requires_new: true) do
-      master_instruments.find_each(batch_size: 100) do |master_instrument|
+      master_instruments(instruments_ids).find_each(batch_size: 100) do |master_instrument|
         break if self.errors.present?
 
         if evaluate_rule(:entry_rule, master_instrument)
@@ -31,13 +37,15 @@ class Strategy < ApplicationRecord
       end
       raise ActiveRecord::Rollback
     end
+
+    filtered_master_instrument_ids
   end
 
-  def evaluate_exit_rule(market_data)
+  def evaluate_exit_rule(instruments_ids = self.master_instrument_ids)
     filtered_master_instrument_ids = []
 
     ActiveRecord::Base.transaction(requires_new: true) do
-      master_instruments.find_each(batch_size: 100) do |master_instrument|
+      master_instruments(instruments_ids).find_each(batch_size: 100) do |master_instrument|
         break if self.errors.present?
 
         if evaluate_rule(:exit_rule, master_instrument)
@@ -46,10 +54,14 @@ class Strategy < ApplicationRecord
       end
       raise ActiveRecord::Rollback
     end
+
+    filtered_master_instrument_ids
   end
 
   private
     def validate_entry_rule
+      return unless changes.include?("entry_rule")
+
       validate_rules_syntax(:entry_rule)
       return if self.errors.present?
 
@@ -63,6 +75,8 @@ class Strategy < ApplicationRecord
     end
 
     def validate_exit_rule
+      return unless changes.include?("exit_rule")
+
       validate_rules_syntax(:exit_rule)
       return if self.errors.present?
 

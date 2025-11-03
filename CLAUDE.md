@@ -16,6 +16,7 @@ This is an **Equity Trading** Rails 8 application for managing trading API confi
 - **WebSocket**: Faye-WebSocket with EventMachine for real-time market data
 - **Message Protocol**: Google Protobuf for binary data decoding
 - **Cache/State**: Redis for WebSocket connection state management
+- **Version Tracking**: PaperTrail gem for audit trail on Strategy model
 - **Testing**: RSpec with FactoryBot and Faker
 - **Deployment**: Kamal (Docker-based)
 
@@ -261,6 +262,34 @@ Key methods in Authentication concern:
   - Tests rules against a sample instrument before saving
   - Comprehensive pattern matching prevents code injection attacks
 
+**Strategy** (`app/models/strategy.rb`):
+- Base model using **Single Table Inheritance (STI)** pattern for trading strategies
+- `belongs_to :user`
+- Includes `StrategyConcern` (technical indicators) and `RuleEvaluationConcern` (security validation)
+- Uses `has_paper_trail` for version tracking (via PaperTrail gem)
+- Fields: `name`, `type`, `description`, `entry_rule`, `exit_rule`, `master_instrument_ids` (array), `parameters` (jsonb), `deploy` (boolean)
+- Subclasses:
+  - **InstrumentBasedStrategy**: Manually selected instruments, requires `master_instrument_ids`
+  - **ScreenerBasedStrategy**: Uses screener results, stores `screener_id` and `screener_execution_time` in `parameters`
+    - `scan` method updates `master_instrument_ids` from screener results
+    - Validates screener execution time format (HH:MM)
+  - **RuleBasedStrategy**: Custom rules stored in `parameters["rules"]`
+- **Entry/Exit Rules**:
+  - `entry_rule` and `exit_rule` - Text expressions evaluated against master instruments
+  - `evaluate_entry_rule(market_data)` / `evaluate_exit_rule(market_data)` - Evaluates rules in transaction (with rollback)
+  - Rules can reference technical indicators via `StrategyConcern` modules
+  - Uses Ruby `eval()` within `instance_eval` context for rule execution
+  - Results cached in `@calculated_data` hash for performance
+- **Security**: Same `validate_rules_syntax` pattern as Screener (via `RuleEvaluationConcern`)
+  - Validates both entry and exit rules before saving
+  - Tests rules against sample instrument to catch syntax errors
+  - Comprehensive dangerous pattern blocking (defined in `DANGEROUS_PATTERNS` constant)
+
+**Notification** (`app/models/notification.rb`):
+- Polymorphic notification system
+- `belongs_to :user` and `belongs_to :item, polymorphic: true`
+- Fields: `item_type`, `item_id`, `data` (jsonb)
+
 **ScreenerConcern** (`app/models/concerns/screener_concern.rb`):
 - Includes technical indicator modules for use in screener rules
 - Available technical indicators:
@@ -275,6 +304,26 @@ Key methods in Authentication concern:
 - Parameters: `unit` (day/minute/hour/week/month), `interval` (1, 5, 15, etc.), `number_of_candles` (offset from latest)
 - Results are cached in `@calculated_data` hash within the screener evaluation context for performance
 
+**StrategyConcern** (`app/models/concerns/strategy_concern.rb`):
+- Includes technical indicator modules for use in strategy entry/exit rules
+- Same technical indicators as ScreenerConcern:
+  - `TechnicalIndicators::Close`, `Open`, `High`, `Low`, `Ltp`
+  - `TechnicalIndicators::CurrentTime` - Access current time for time-based rules
+  - `TechnicalIndicators::ParseTime` - Parse time strings in rules
+
+**RuleEvaluationConcern** (`app/models/concerns/rule_evaluation_concern.rb`):
+- Shared concern for security validation of dynamic rules
+- Defines `DANGEROUS_PATTERNS` constant with 100+ regex patterns blocking:
+  - System/command execution (`system`, `exec`, backticks, `spawn`, `fork`)
+  - Code evaluation (`eval`, `send`, `instance_eval`, `class_eval`)
+  - File/directory operations (`File`, `Dir`, `IO`, `Pathname`)
+  - Database write operations (`create`, `update`, `delete`, `destroy`)
+  - Network/HTTP operations (`Net::`, `Socket`, `URI`)
+  - Global variable access (`$variable`)
+  - Environment manipulation (`ENV`, `exit`, `raise`)
+  - Dangerous deserialization (`YAML.load`, `Marshal.load`)
+- Used by both Screener and Strategy models to validate user-defined rules
+
 ### Routes Structure
 
 - **Root**: Dashboard (`dashboard#index`)
@@ -284,8 +333,14 @@ Key methods in Authentication concern:
 - **Instruments**: Read-only index (`resources :instruments, only: [:index]`) for viewing trading instruments
 - **Holdings**: Read-only (`resources :holdings, only: [:index, :show]`)
 - **Instrument Histories**: Full CRUD (`resources :instrument_histories`)
-- **Screeners**: Full CRUD (`resources :screeners`) for managing screeners/strategies
+- **Screeners**: Full CRUD (`resources :screeners`) for managing screeners
   - `GET /screeners/:id/scan` - Executes the screener scan against all master instruments
+- **Strategies**: Full CRUD (`resources :strategies`) for managing trading strategies
+  - Base controller for all strategy types
+- **Strategy Types** (STI-based routes):
+  - `resources :instrument_based_strategies` - Manually selected instrument strategies
+  - `resources :screener_based_strategies` - Screener-based strategies
+  - `resources :rule_based_strategies` - Custom rule-based strategies
 - **Upstox OAuth**:
   - `POST /upstox/oauth/authorize/:id` - Initiates OAuth flow
   - `GET /upstox/oauth/callback` - Handles OAuth callback
@@ -531,7 +586,7 @@ CSS is bundled via `cssbundling-rails`. After pulling changes, run `bin/rails cs
 
 ### Single Table Inheritance (STI) Pattern
 
-The application uses STI for the Instrument domain model:
+The application uses STI for two domain models:
 
 **Instrument Model STI**:
 - All instruments are stored in the `instruments` table
@@ -539,7 +594,14 @@ The application uses STI for the Instrument domain model:
 - Use `Instrument.create(type: 'UpstoxInstrument', ...)` or `UpstoxInstrument.create(...)`
 - Query all instruments: `Instrument.all`, or specific broker: `UpstoxInstrument.all`
 
-**Screener Model** (not using STI anymore):
+**Strategy Model STI**:
+- All strategies are stored in the `strategies` table
+- The `type` column determines the subclass (`InstrumentBasedStrategy`, `ScreenerBasedStrategy`, `RuleBasedStrategy`)
+- Use `Strategy.create(type: 'InstrumentBasedStrategy', ...)` or `InstrumentBasedStrategy.create(...)`
+- Query all strategies: `Strategy.all`, or specific type: `InstrumentBasedStrategy.all`
+- Each strategy type has its own controller and views under respective namespaces
+
+**Screener Model** (not using STI):
 - All screeners are stored in the `screeners` table
 - Users create screeners with custom `rules` text expressions
 - Rules are evaluated dynamically using Ruby `eval()` against master instruments
@@ -566,6 +628,16 @@ The application uses STI for the Instrument domain model:
 - Uses `find_or_initialize_by` with `identifier` (instrument_token) for upserts
 - Creates `MasterInstrument` mapping records automatically
 - Call from console: `ZerodhaInstrument.import_instruments(api_key: "your_key", access_token: "your_token")`
+
+### Version Tracking with PaperTrail
+
+The `Strategy` model uses PaperTrail gem for audit trail:
+- All create/update/destroy operations are tracked in the `versions` table
+- Access version history: `strategy.versions`
+- Restore previous version: `strategy.versions.last.reify`
+- See who made changes: `version.whodunnit` (user ID from `Current.user`)
+- View changes: `version.changeset` returns hash of attribute changes
+- The `versions` table uses UUID as primary key for better scalability
 
 ### Frontend & Views
 
