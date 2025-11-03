@@ -130,7 +130,6 @@ module Upstox
       # log_debug "[MarketData] Received data: #{data.inspect}"
 
       data[:feeds].each do |identifier, detail|
-        log_debug "#{upstox_identifier_token_mapping[identifier]}"
         redis_client.call(
           "SET",
           upstox_identifier_token_mapping[identifier],

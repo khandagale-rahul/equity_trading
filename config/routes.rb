@@ -1,4 +1,9 @@
+require "sidekiq/web"
+require "sidekiq/cron/web"
+
 Rails.application.routes.draw do
+  mount Sidekiq::Web => "/sidekiq"
+
   resources :strategies
   resources :instrument_based_strategies # , controller: "instrument_based_strategies"
   resources :rule_based_strategies # , controller: "rule_based_strategies"

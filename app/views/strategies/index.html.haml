@@ -31,7 +31,7 @@
                     %td{style: "white-space: normal; word-wrap: break-word; max-width: 400px;"}
                       = strategy.description.present? ? truncate(strategy.description, length: 100) : "-"
                     %td
-                      - if strategy.deploy
+                      - if strategy.deployed
                         %span.badge.bg-success
                           %i.fas.fa-check-circle.me-1
                           Deployed
@@ -41,7 +41,7 @@
                           Not Deployed
                     %td
                       .d-flex.gap-1
-                        - if strategy.deploy
+                        - if strategy.deployed
                           = button_to strategy_path(strategy), method: :patch, params: { strategy: { deploy: false } }, class: "btn btn-sm btn-secondary", title: "Undeploy Strategy" do
                             %i.fas.fa-stop.me-1
                             Undeploy

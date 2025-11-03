@@ -1,2 +1,3 @@
 web: bin/rails server
 css: npm run build:css -- --watch
+worker: bundle exec sidekiq -q market_data,1 -q default,2
