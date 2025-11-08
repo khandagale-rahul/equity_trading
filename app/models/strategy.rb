@@ -8,8 +8,7 @@ class Strategy < ApplicationRecord
 
   belongs_to :user
 
-  has_many :notifications
-  has_many :push_notifications
+  has_many :push_notifications, as: :item
 
   validates :entry_rule,
             :exit_rule,
@@ -58,7 +57,29 @@ class Strategy < ApplicationRecord
     filtered_master_instrument_ids
   end
 
+  def initiate_place_order(master_instrument_id)
+    broker_klass.create(
+      trade_action: "entry",
+      strategy_id: id,
+      user_id: user.id,
+      master_instrument_id: master_instrument_id
+    )
+  end
+
+  def initiate_close_order(master_instrument_id)
+    broker_klass.create(
+      trade_action: "exit",
+      strategy_id: id,
+      user_id: user.id,
+      master_instrument_id: master_instrument_id
+    )
+  end
+
   private
+    def broker_klass
+      ZerodhaOrder
+    end
+
     def validate_entry_rule
       return unless changes.include?("entry_rule")
 

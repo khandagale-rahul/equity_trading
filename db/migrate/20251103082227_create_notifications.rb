@@ -4,7 +4,8 @@ class CreateNotifications < ActiveRecord::Migration[8.0]
       t.string :type, null: false
       t.references :user, null: false, foreign_key: true
       t.references :item, polymorphic: true, null: false
-      t.jsonb :data
+      t.text :message
+      t.string :status
 
       t.timestamps
     end

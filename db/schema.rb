@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_03_104416) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_08_133022) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -98,11 +98,53 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_03_104416) do
     t.bigint "user_id", null: false
     t.string "item_type", null: false
     t.bigint "item_id", null: false
-    t.jsonb "data"
+    t.text "message"
+    t.string "status"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["item_type", "item_id"], name: "index_notifications_on_item"
     t.index ["user_id"], name: "index_notifications_on_user_id"
+  end
+
+  create_table "orders", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "strategy_id", null: false
+    t.bigint "master_instrument_id", null: false
+    t.string "type"
+    t.integer "instrument_id"
+    t.string "instrument_type"
+    t.integer "trade_action"
+    t.string "broker_order_id"
+    t.string "status"
+    t.text "status_message"
+    t.text "status_message_raw"
+    t.string "tradingsymbol"
+    t.string "exchange"
+    t.datetime "exchange_update_timestamp"
+    t.datetime "exchange_timestamp"
+    t.string "variety"
+    t.string "order_type"
+    t.datetime "order_timestamp"
+    t.string "product"
+    t.string "validity"
+    t.integer "validity_ttl"
+    t.string "transaction_type"
+    t.integer "quantity"
+    t.integer "disclosed_quantity"
+    t.float "quote_ltp"
+    t.float "price"
+    t.float "trigger_price"
+    t.float "average_price"
+    t.integer "filled_quantity"
+    t.integer "pending_quantity"
+    t.integer "cancelled_quantity"
+    t.json "meta"
+    t.string "guid"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["master_instrument_id"], name: "index_orders_on_master_instrument_id"
+    t.index ["strategy_id"], name: "index_orders_on_strategy_id"
+    t.index ["user_id"], name: "index_orders_on_user_id"
   end
 
   create_table "screeners", force: :cascade do |t|
@@ -138,10 +180,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_03_104416) do
     t.text "exit_rule"
     t.integer "master_instrument_ids", default: [], array: true
     t.boolean "deployed", default: false, null: false
-    t.integer "entered_master_instrument_ids", default: [], array: true
-    t.integer "existed_master_instrument_ids", default: [], array: true
     t.integer "re_enter", default: 0, null: false
     t.integer "daily_max_entries", default: 5, null: false
+    t.integer "entered_master_instrument_ids", default: [], array: true
+    t.boolean "only_simulate", default: false
+    t.integer "close_order_ids", default: [], array: true
     t.index ["user_id"], name: "index_strategies_on_user_id"
   end
 
@@ -172,6 +215,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_03_104416) do
   add_foreign_key "holdings", "users"
   add_foreign_key "instrument_histories", "master_instruments"
   add_foreign_key "notifications", "users"
+  add_foreign_key "orders", "master_instruments"
+  add_foreign_key "orders", "strategies"
+  add_foreign_key "orders", "users"
   add_foreign_key "screeners", "users"
   add_foreign_key "sessions", "users"
   add_foreign_key "strategies", "users"
