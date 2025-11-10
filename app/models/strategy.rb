@@ -58,17 +58,7 @@ class Strategy < ApplicationRecord
   end
 
   def initiate_place_order(master_instrument_id)
-    broker_klass.create(
-      trade_action: "entry",
-      strategy_id: id,
-      user_id: user.id,
-      master_instrument_id: master_instrument_id
-    )
-  end
-
-  def initiate_close_order(master_instrument_id)
-    broker_klass.create(
-      trade_action: "exit",
+    broker_klass.entry.create(
       strategy_id: id,
       user_id: user.id,
       master_instrument_id: master_instrument_id

@@ -6,11 +6,11 @@ class ZerodhaInstrument < Instrument
   has_one :master_instrument, foreign_key: :zerodha_instrument_id
 
   def self.import_instruments(api_key:, access_token:)
-    kite_app = Zerodha::ApiService.new(api_key: api_key, access_token: access_token)
-    kite_app.instruments
+    api_service = Zerodha::ApiService.new(api_key: api_key, access_token: access_token)
+    api_service.instruments
 
-    if kite_app.response[:status] == "success"
-      csv_data = CSV.parse(kite_app.response[:data], headers: :first_row)
+    if api_service.response[:status] == "success"
+      csv_data = CSV.parse(api_service.response[:data], headers: :first_row)
 
       csv_data.each do |row|
         if ZerodhaInstrument::LIST.include?(row["exchange"]) && row["instrument_type"] == "EQ"

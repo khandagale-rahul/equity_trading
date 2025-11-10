@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_08_133022) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_10_144447) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -26,6 +26,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_08_133022) do
     t.string "oauth_state"
     t.datetime "oauth_authorized_at"
     t.string "redirect_uri"
+    t.string "postback_url"
     t.index ["api_name"], name: "index_api_configurations_on_api_name"
     t.index ["user_id", "api_name"], name: "index_api_configurations_on_user_id_and_api_name", unique: true
     t.index ["user_id"], name: "index_api_configurations_on_user_id"
@@ -140,8 +141,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_08_133022) do
     t.integer "cancelled_quantity"
     t.json "meta"
     t.string "guid"
+    t.integer "entry_order_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "discarded_at"
+    t.index ["discarded_at"], name: "index_orders_on_discarded_at"
     t.index ["master_instrument_id"], name: "index_orders_on_master_instrument_id"
     t.index ["strategy_id"], name: "index_orders_on_strategy_id"
     t.index ["user_id"], name: "index_orders_on_user_id"

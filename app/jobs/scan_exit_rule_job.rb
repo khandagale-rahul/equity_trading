@@ -3,25 +3,28 @@ class ScanExitRuleJob
   include JobLogger
 
   queue_as :default
+  sidekiq_options lock: :until_executed, on_conflict: :reject
 
-  def perform(strategy_id)
+  def perform(place_order_id)
     setup_job_logger
 
-    strategy = Strategy.find_by(id: strategy_id)
-    return unless strategy
-    return if strategy.entered_master_instrument_ids.uniq.count >= strategy.daily_max_entries
+    entry_order = Order.entry.find_by(id: order_id)
+    return unless entry_order
 
-    non_re_enter_master_instrument_ids = strategy.entered_master_instrument_ids.tally.select { |_, count| count >= strategy.re_enter }.keys
-    master_instrument_ids = strategy.master_instrument_ids - non_re_enter_master_instrument_ids
-    return if master_instrument_ids.empty?
-
-    filtered_master_instrument_ids = strategy.evaluate_entry_rule(master_instrument_ids)
-
-    filtered_master_instrument_ids.each do |master_instrument_id|
-      strategy.initiate_place_order(master_instrument_id)
+    exit_order = entry_order.exit_order
+    if exit_order && exit_order.undiscarded?
+    else
+      exit_order = entry_order.initiate_exit_order
+      exit_order.save
     end
 
-    ScanExitRuleJob.perform_at((Time.now + 1.minutes).change(sec: 0), strategy_id)
+    filtered_master_instrument_ids = exit_order.strategy.evaluate_exit_rule([ order.master_instrument_id ])
+
+    if filtered_master_instrument_ids.include?(order.master_instrument_id)
+      exit_order.exit_at_current_price
+    else
+      ScanExitRuleJob.perform_at((Time.now + 1.minutes).change(sec: 0), strategy_id)
+    end
   rescue StandardError => e
     log_error "Failed to close order for Strategy #{strategy_id} on Master Instrument #{master_instrument_id}: #{e.message}"
   end

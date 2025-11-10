@@ -34,6 +34,7 @@ class CreateOrders < ActiveRecord::Migration[8.0]
       t.integer :cancelled_quantity
       t.json :meta
       t.string :guid
+      t.integer :entry_order_id
 
       t.timestamps
     end

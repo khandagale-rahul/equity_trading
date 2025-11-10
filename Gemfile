@@ -45,6 +45,7 @@ gem "thruster", require: false
 # For background jobs
 gem "sidekiq", "~> 8.0.8"
 gem "sidekiq-cron", "~> 2.3.1"
+gem "sidekiq-unique-jobs", "~> 8.0.11"
 
 # For WebSocket client connection
 gem "faye-websocket", "~> 0.12.0"
@@ -62,6 +63,7 @@ gem "rest-client", "~> 2.1.0"
 gem "csv", "~> 3.3.5"
 gem "paper_trail", "~> 17.0.0"
 gem "aasm", "~> 5.5.2"
+gem "discard", "~> 1.4"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
