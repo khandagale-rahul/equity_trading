@@ -1,16 +1,24 @@
 %div{id: dom_id(api_configuration)}
-  %p
-    %strong API Name:
-    = api_configuration.api_name&.humanize
-  %p
-    %strong API Key:
-    = api_configuration.api_key
-  %p
-    %strong API Secret:
-    = api_configuration.api_secret
-  %p
-    %strong Created At:
-    = l(api_configuration.created_at, format: :short)
-  %p
-    %strong Updated At:
-    = l(api_configuration.updated_at, format: :short)
+  %table.table.table-striped.table-bordered
+    %tbody
+      %tr
+        %th API Name
+        %td= api_configuration.api_name&.humanize
+      %tr
+        %th API Key
+        %td= api_configuration.api_key
+      %tr
+        %th API Secret
+        %td= api_configuration.api_secret
+      %tr
+        %th Redirect URI
+        %td= api_configuration.redirect_uri
+      %tr
+        %th Postback URL
+        %td= api_configuration.generate_postback_url
+      %tr
+        %th Created At
+        %td= l(api_configuration.created_at, format: :short)
+      %tr
+        %th Updated At
+        %td= l(api_configuration.updated_at, format: :short)

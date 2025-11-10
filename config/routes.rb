@@ -34,6 +34,7 @@ Rails.application.routes.draw do
   namespace :zerodha do
     post "oauth/authorize/:id", to: "oauth#authorize", as: "oauth_authorize"
     get "oauth/callback", to: "oauth#callback", as: "oauth_callback"
+    post "postback/:user_id/:api_config_id", to: "postback#receive", as: "postback"
   end
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

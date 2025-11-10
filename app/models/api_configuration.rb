@@ -7,33 +7,35 @@ class ApiConfiguration < ApplicationRecord
   validates :api_key, presence: true
   validates :api_secret, presence: true
 
-  # Check if OAuth has been completed
   def oauth_authorized?
     oauth_authorized_at.present? && access_token.present?
   end
 
-  # Check if the access token has expired
   def token_expired?
     return true if token_expires_at.blank?
     token_expires_at < Time.current
   end
 
-  # Check if re-authorization is needed
   def requires_reauthorization?
     !oauth_authorized? || token_expired?
   end
 
-  # Get OAuth status as human-readable string
   def oauth_status
     return "Not Authorized" unless oauth_authorized?
     return "Token Expired" if token_expired?
     "Authorized"
   end
 
-  # Get OAuth status badge color for UI
   def oauth_status_badge_class
     return "bg-secondary" unless oauth_authorized?
     return "bg-danger" if token_expired?
     "bg-success"
+  end
+
+  def generate_postback_url
+    postback_base_url = Rails.application.credentials.postback_base_url
+    return nil unless postback_base_url.present?
+
+    "#{postback_base_url}/#{api_name}/postback/#{user_id}/#{id}"
   end
 end

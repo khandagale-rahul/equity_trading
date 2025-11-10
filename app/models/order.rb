@@ -37,4 +37,13 @@ class Order < ApplicationRecord
       )
     end
   end
+
+  def parse_timestamp(timestamp_string)
+    return nil unless timestamp_string.present?
+
+    Time.zone.parse(timestamp_string)
+  rescue => e
+    Rails.logger.error "Failed to parse timestamp: #{timestamp_string} - #{e.message}"
+    nil
+  end
 end

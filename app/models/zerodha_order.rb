@@ -24,28 +24,29 @@ class ZerodhaOrder < Order
   VALIDITY_IOC = "IOC"
   VALIDITY_TTL = "TTL"
 
-  before_create :set_instrument
-  before_create :set_order_fields
+  before_create :set_instrument, if: -> { entry? }
+  before_create :set_order_fields, if: -> { entry? }
 
   after_commit :notify_about_initiation, on: :create
   after_commit :push_to_broker, on: :create
 
   def exit_at_current_price
-    return if status.eql?("COMPLETE") || status.include?("CANCELLED")
+    return if status.eql?("COMPLETE
+(    self.assign_attributes") || status.include?("CANCELLED")
 
-    ltp = master_instrument.ltp
-    zerodha_instrument = master_instrument.zerodha_instrument
+      ltp = master_instrument.ltp
+      zerodha_instrument = master_instrument.zerodha_instrument
 
-    buffer = zerodha_instrument.tick_size * 2
-    new_price = transaction_type.eql?(ZerodhaOrder::TRANSACTION_TYPE_SELL) ? (ltp - buffer) : (ltp + buffer)
-    new_price = new_price <= 0 ? 1.0 : new_price
+      buffer = zerodha_instrument.tick_size * 2
+      new_price = transaction_type.eql?(ZerodhaOrder::TRANSACTION_TYPE_SELL) ? (ltp - buffer) : (ltp + buffer)
+      new_price = new_price <= 0 ? 1.0 : new_price
 
-    params = {
-      price: new_price,
-      trigger_price: 0,
-      order_type: ZerodhaOrder::ORDER_TYPE_LIMIT
-    }
-    modify_order(params)
+      params = {
+        price: new_price,
+        trigger_price: 0,
+        order_type: ZerodhaOrder::ORDER_TYPE_LIMIT
+      }
+      modify_order(params)
   end
 
   def initiate_exit_order
@@ -74,7 +75,47 @@ class ZerodhaOrder < Order
     )
   end
 
+  def update_order_details(last_order_history)
+    last_order_history = last_order_history.with_indifferent_access
+
+    self.reload.update(
+      status: map_zerodha_status(last_order_history[:status]),
+      status_message: last_order_history[:status_message],
+      status_message_raw: last_order_history[:status_message_raw],
+      order_timestamp: parse_timestamp(last_order_history[:order_timestamp]),
+      exchange_update_timestamp: parse_timestamp(last_order_history[:exchange_update_timestamp]),
+      exchange_timestamp: parse_timestamp(last_order_history[:exchange_timestamp]),
+      price: last_order_history[:price],
+      trigger_price: last_order_history[:trigger_price],
+      average_price: last_order_history[:average_price],
+      quantity: last_order_history[:quantity],
+      disclosed_quantity: last_order_history[:disclosed_quantity],
+      filled_quantity: last_order_history[:filled_quantity],
+      pending_quantity: last_order_history[:pending_quantity],
+      cancelled_quantity: last_order_history[:cancelled_quantity],
+      meta: last_order_history[:meta],
+      guid: last_order_history[:guid]
+    )
+  end
+
   private
+
+  def map_zerodha_status(zerodha_status)
+    case zerodha_status&.upcase
+    when "COMPLETE"
+      "completed"
+    when "REJECTED"
+      "rejected"
+    when "CANCELLED"
+      "cancelled"
+    when "OPEN", "TRIGGER PENDING"
+      "pending"
+    when "MODIFY PENDING", "CANCEL PENDING"
+      "pending_action"
+    else
+      zerodha_status&.downcase || "unknown"
+    end
+  end
 
   def opposite_transaction_type
     transaction_type.eql?(ZerodhaOrder::TRANSACTION_TYPE_SELL) ? ZerodhaOrder::TRANSACTION_TYPE_BUY : ZerodhaOrder::TRANSACTION_TYPE_SELL
@@ -88,20 +129,22 @@ class ZerodhaOrder < Order
     return nil if instrument.blank?
 
     ltp = master_instrument.ltp
-    self.tradingsymbol = instrument.identifier
-    self.exchange = instrument.exchange
-    self.variety = ZerodhaOrder::VARIETY_REGULAR
-    self.order_type = ZerodhaOrder::ORDER_TYPE_SL
-    self.product = ZerodhaOrder::PRODUCT_MIS
-    self.validity = ZerodhaOrder::VALIDITY_IOC
-    self.transaction_type = ZerodhaOrder::TRANSACTION_TYPE_BUY
-    self.quantity = 1
-    self.trigger_price = ltp + instrument.tick_size
-    self.price = ltp + instrument.tick_size
-    self.disclosed_quantity = nil
-    self.expiry = instrument.expiry
-    self.instrument_token = instrument.instrument_token
-    self.quote_price = ltp
+    self.assign_attributes(
+      tradingsymbol: instrument.identifier,
+      exchange: instrument.exchange,
+      variety: ZerodhaOrder::VARIETY_REGULAR,
+      order_type: ZerodhaOrder::ORDER_TYPE_SL,
+      product: ZerodhaOrder::PRODUCT_MIS,
+      validity: ZerodhaOrder::VALIDITY_IOC,
+      transaction_type: ZerodhaOrder::TRANSACTION_TYPE_BUY,
+      quantity: 1,
+      trigger_price: (ltp + instrument.tick_size),
+      price: (ltp + instrument.tick_size),
+      disclosed_quantity: nil,
+      expiry: instrument.expiry,
+      instrument_token: instrument.instrument_token,
+      quote_price: ltp
+    )
   end
 
   def push_to_broker
@@ -197,28 +240,6 @@ class ZerodhaOrder < Order
     end
   end
 
-  def update_order_details(last_order_history)
-    self.reload.update(
-      status: last_order_history["status"],
-      status_message: last_order_history["status_message"],
-      status_message_raw: last_order_history["status_message_raw"],
-      order_timestamp: last_order_history["order_timestamp"],
-      instrument_token: last_order_history["instrument_token"],
-      exchange_update_timestamp: last_order_history["exchange_update_timestamp"],
-      exchange_timestamp: last_order_history["exchange_timestamp"],
-      price: last_order_history["price"],
-      trigger_price: last_order_history["trigger_price"],
-      average_price: last_order_history["average_price"],
-      quantity: last_order_history["quantity"],
-      filled_quantity: last_order_history["filled_quantity"],
-      pending_quantity: last_order_history["pending_quantity"],
-      cancelled_quantity: last_order_history["cancelled_quantity"],
-      meta: last_order_history["meta"],
-      guid: last_order_history["guid"],
-      order_type: last_order_history["order_type"]
-    )
-  end
-
   def getOrderHistory
     api_service = Zerodha::ApiService.new
     api_service.get_order_detail(broker_order_id)
@@ -226,7 +247,6 @@ class ZerodhaOrder < Order
 
   def reinitiate_trailing
     self.update_order_charges
-    sleep 1
 
     if self.cancelled?
       self.discard
