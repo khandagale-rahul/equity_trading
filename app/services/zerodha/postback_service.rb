@@ -7,12 +7,6 @@ module Zerodha
       @api_configuration = api_configuration
     end
 
-    def verify_checksum
-      return false unless postback_data[:checksum].present?
-
-      postback_data[:checksum] == generate_checksum
-    end
-
     def process
       unless verify_checksum
         return { success: false, error: "Invalid checksum - postback authentication failed" }
@@ -20,7 +14,7 @@ module Zerodha
 
       order = ZerodhaOrder.find_by(broker_order_id: postback_data[:order_id], user_id: api_configuration.user_id)
       if order
-        order.update_order_details(orpostback_datader)
+        order.update_order_details(postback_data)
         { success: true, message: "Order updated successfully" }
       else
         { success: false, error: "Failed to create or find order" }
@@ -30,6 +24,12 @@ module Zerodha
     end
 
     private
+
+    def verify_checksum
+      return false unless postback_data[:checksum].present?
+
+      postback_data[:checksum] == generate_checksum
+    end
 
     def generate_checksum
       order_id = postback_data[:order_id]
