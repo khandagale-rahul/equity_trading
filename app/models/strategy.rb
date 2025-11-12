@@ -17,7 +17,6 @@ class Strategy < ApplicationRecord
   validate :validate_exit_rule
 
   scope :deployed, -> { where(deployed: true) }
-  scope :executable, -> { deployed.where.not(master_instrument_ids: []) }
 
   def master_instruments(instruments_ids = self.master_instrument_ids)
     MasterInstrument.where(id: instruments_ids)

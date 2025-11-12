@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_10_144447) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_11_083017) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -103,6 +103,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_10_144447) do
     t.string "status"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "aasm_state"
     t.index ["item_type", "item_id"], name: "index_notifications_on_item"
     t.index ["user_id"], name: "index_notifications_on_user_id"
   end

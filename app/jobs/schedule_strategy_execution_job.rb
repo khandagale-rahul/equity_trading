@@ -8,11 +8,18 @@ class ScheduleStrategyExecutionJob
     setup_job_logger
     log_info "Starting execution of strategy entry rules at #{Time.current}"
 
-    executable_strategies = Strategy.executable
-    log_info "Found #{executable_strategies.count} executable strategies"
+    deployed_strategies = Strategy.deployed
+    log_info "Found #{deployed_strategies.count} deployed strategies"
 
-    executable_strategies.each do |strategy|
-      ScanEntryRuleJob.perform_async(strategy.id)
+    deployed_strategies.each do |strategy|
+      if strategy.type == "ScreenerBasedStrategy"
+        hour, min = strategy.screener_execution_time.split(":")
+        strategy.reset_fields!
+        ScanEntryRuleJob.perform_at(Time.now.change(hour: hour.to_i, min: min.to_i), strategy.id, { scanner_check: true }.to_json)
+      else
+        ScanEntryRuleJob.perform_async(strategy.id)
+      end
+
       log_info "Scheduled strategy: #{strategy.name} (ID: #{strategy.id}, Type: #{strategy.type})"
     end
 

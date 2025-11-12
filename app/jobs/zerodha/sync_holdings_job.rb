@@ -5,31 +5,34 @@ module Zerodha
 
     queue_as :default
 
-    def perform
+    def perform(**options)
       setup_job_logger
       log_info "[Zerodha] Starting holdings sync at #{Time.current}"
 
-      # Use the sync holdings service
-      service = Zerodha::SyncHoldingsService.new
-      summary = service.sync_all
+      configs = ApiConfiguration.zerodha
+      configs = configs.where(user_id: options[:user_id]) if options[:user_id].presence
 
-      if summary[:total_configs] == 0
-        log_warn "[Zerodha] #{summary[:message]}"
-        return
-      end
+      configs.each do |api_config|
+        service = Zerodha::SyncHoldingsService.new
+        summary = service.sync(api_config)
 
-      log_info "[Zerodha] Found #{summary[:total_configs]} Zerodha API configuration(s)"
-
-      # Log details for each result
-      summary[:results].each do |result|
-        if result[:status] == :success
-          log_info "[Zerodha] SUCCESS: User #{result[:user_name]} (ID: #{result[:user_id]}) - #{result[:message]}"
-        else
-          log_error "[Zerodha] ERROR: User #{result[:user_name]} (ID: #{result[:user_id]}) - #{result[:message]}"
+        if summary[:total_configs] == 0
+          log_warn "[Zerodha] #{summary[:message]}"
+          return
         end
-      end
 
-      log_info "[Zerodha] Holdings sync completed. Success: #{summary[:success_count]}, Errors: #{summary[:error_count]}"
+        log_info "[Zerodha] Found #{summary[:total_configs]} Zerodha API configuration(s)"
+
+        summary[:results].each do |result|
+          if result[:status] == :success
+            log_info "[Zerodha] SUCCESS: User #{result[:user_name]} (ID: #{result[:user_id]}) - #{result[:message]}"
+          else
+            log_error "[Zerodha] ERROR: User #{result[:user_name]} (ID: #{result[:user_id]}) - #{result[:message]}"
+          end
+        end
+
+        log_info "[Zerodha] Holdings sync completed. Success: #{summary[:success_count]}, Errors: #{summary[:error_count]}"
+      end
     end
   end
 end

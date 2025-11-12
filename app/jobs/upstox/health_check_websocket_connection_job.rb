@@ -49,7 +49,7 @@ module Upstox
     def restart_service
       log_info "[MarketData] Attempting to restart service..."
 
-      Upstox::StartWebsocketConnectionJob.perform_now
+      Upstox::StartWebsocketConnectionJob.perform_async
 
       sleep 5
 

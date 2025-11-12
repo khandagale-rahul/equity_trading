@@ -100,6 +100,11 @@ class ZerodhaOrder < Order
 
   private
 
+  def api_service_instance
+    @api_config ||= strategy.user.api_configurations.zerodha.last
+    @api_service ||= Zerodha::ApiService.new(api_key: @api_config.api_key, access_token: @api_config.access_token)
+  end
+
   def map_zerodha_status(zerodha_status)
     case zerodha_status&.upcase
     when "COMPLETE"
@@ -130,7 +135,7 @@ class ZerodhaOrder < Order
 
     ltp = master_instrument.ltp
     self.assign_attributes(
-      tradingsymbol: instrument.identifier,
+      tradingsymbol: instrument.symbol,
       exchange: instrument.exchange,
       variety: ZerodhaOrder::VARIETY_REGULAR,
       order_type: ZerodhaOrder::ORDER_TYPE_SL,
@@ -141,9 +146,7 @@ class ZerodhaOrder < Order
       trigger_price: (ltp + instrument.tick_size),
       price: (ltp + instrument.tick_size),
       disclosed_quantity: nil,
-      expiry: instrument.expiry,
-      instrument_token: instrument.instrument_token,
-      quote_price: ltp
+      quote_ltp: ltp
     )
   end
 
@@ -163,10 +166,8 @@ class ZerodhaOrder < Order
       validity_ttl: validity_ttl,
       trigger_price: trigger_price
     }
-
-    api_service = Zerodha::ApiService.new
-    order_response = api_service.place_order(params.compact)
-    handle_response(order_response)
+    api_service_instance.place_order(params.compact)
+    handle_response(api_service_instance.response)
   end
 
   def handle_response(create_order_response)
@@ -180,6 +181,13 @@ class ZerodhaOrder < Order
         status_message: create_order_response["message"],
         status_message_raw: create_order_response["error_type"]
       )
+    elsif create_order_response["status"] == "failed"
+      parsed_response = JSON.parse(create_order_response["message"])
+      self.update(
+        status: parsed_response["status"],
+        status_message: parsed_response["message"],
+        status_message_raw: parsed_response["error_type"]
+      )
     end
   end
 
@@ -191,7 +199,7 @@ class ZerodhaOrder < Order
 
     self.push_notifications.create(
       user_id: user_id,
-      message: message.join(" ")
+      message: messages.join(" ")
     )
   end
 
@@ -200,8 +208,8 @@ class ZerodhaOrder < Order
 
     params = params.merge({ variety: self.variety, order_id: self.broker_order_id })
 
-    api_service = Zerodha::ApiService.new
-    response = api_service.modify_order(params.compact)
+    api_service_instance.modify_order(params.compact)
+    response = api_service_instance.response
 
     if response["status"].eql?("error")
       if response["message"].downcase.include?("maximum allowed order modifications exceeded")
@@ -223,11 +231,10 @@ class ZerodhaOrder < Order
   def cancel_order
     params = { variety: self.variety, order_id: self.broker_order_id }
 
-    api_service = Zerodha::ApiService.new
-    api_service.cancel_order(params)
+    api_service_instance.cancel_order(params)
     update_order_status
 
-    api_service.response
+    api_service_instance.response
   end
 
   def update_order_status
@@ -241,8 +248,7 @@ class ZerodhaOrder < Order
   end
 
   def getOrderHistory
-    api_service = Zerodha::ApiService.new
-    api_service.get_order_detail(broker_order_id)
+    api_service_instance.get_order_detail(broker_order_id)
   end
 
   def reinitiate_trailing

@@ -55,7 +55,7 @@ class StrategiesController < ApplicationController
         :description,
         :entry_rule,
         :exit_rule,
-        :deploy
+        :deployed
       ]
 
       base_attrs << case strategy_type

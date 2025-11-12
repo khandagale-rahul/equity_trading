@@ -10,7 +10,7 @@ module Upstox
     #   unit: "day" (default), "minute", "hour", "week", "month"
     #   interval: 1 (default), depends on unit
     #   days_back: 7 (default) - number of days of history to fetch
-    def perform(unit: "day", interval: 1, days_back: 7)
+    def perform(unit: "day", interval: 1, days_back: 1)
       setup_job_logger
       log_info "[InstrumentHistory] Starting instrument history sync at #{Time.current}"
       log_info "[InstrumentHistory] Parameters: unit=#{unit}, interval=#{interval}, days_back=#{days_back}"
@@ -29,7 +29,6 @@ module Upstox
         return
       end
 
-      # Fetch all UpstoxInstruments
       instruments = UpstoxInstrument.all
       total_count = instruments.count
       success_count = 0

@@ -8,10 +8,8 @@ module Zerodha
       @results = []
     end
 
-    def sync_all
-      api_configs = ApiConfiguration.zerodha.where.not(access_token: nil)
-
-      if api_configs.empty?
+    def sync(api_config)
+      if api_config.empty?
         return {
           success: true,
           message: "No authorized Zerodha API configurations found",
@@ -22,13 +20,13 @@ module Zerodha
         }
       end
 
-      api_configs.each do |api_config|
+      api_config.each do |api_config|
         sync_for_config(api_config)
       end
 
       {
         success: true,
-        total_configs: api_configs.count,
+        total_configs: api_config.count,
         success_count: @success_count,
         error_count: @error_count,
         results: @results

@@ -27,6 +27,10 @@ class ScreenerBasedStrategy < Strategy
     self.save
   end
 
+  def reset_fields!
+    update(master_instrument_ids: [], entered_master_instrument_ids: [], close_order_ids: [])
+  end
+
   private
     def validate_screener
       unless screener_id.present?

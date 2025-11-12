@@ -42,11 +42,11 @@
                     %td
                       .d-flex.gap-1
                         - if strategy.deployed
-                          = button_to strategy_path(strategy), method: :patch, params: { strategy: { deploy: false } }, class: "btn btn-sm btn-secondary", title: "Undeploy Strategy" do
+                          = button_to strategy_path(strategy), method: :patch, params: { strategy: { deployed: false } }, class: "btn btn-sm btn-secondary", title: "Undeploy Strategy" do
                             %i.fas.fa-stop.me-1
                             Undeploy
                         - else
-                          = button_to strategy_path(strategy), method: :patch, params: { strategy: { deploy: true } }, class: "btn btn-sm btn-success", title: "Deploy Strategy" do
+                          = button_to strategy_path(strategy), method: :patch, params: { strategy: { deployed: true } }, class: "btn btn-sm btn-success", title: "Deploy Strategy" do
                             %i.fas.fa-play.me-1
                             Deploy
                         = link_to edit_strategy_path(strategy), class: "btn btn-sm btn-warning" do

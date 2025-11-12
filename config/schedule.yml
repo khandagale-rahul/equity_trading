@@ -2,43 +2,43 @@
 # Times are in IST (configured in config/application.rb)
 
 start_market_data:
-  cron: "0 9 * * 1-5"  # 9:00 AM Monday-Friday
+  cron: "15 9 * * 1-5"
   class: "Upstox::StartWebsocketConnectionJob"
   queue: "market_data"
   description: "Start Upstox WebSocket market data feed at market open"
 
-execute_strategy_entry_rules:
-  cron: "15 9 * * 1-5"  # 9:15 AM Monday-Friday
-  class: "ExecuteStrategyEntryRulesJob"
+ScheduleStrategyExecutionJob:
+  cron: "15 9 * * 1-5"
+  class: "ScheduleStrategyExecutionJob"
   queue: "default"
   description: "Execute entry rules for all deployed strategies at market open"
 
 stop_market_data:
-  cron: "30 15 * * 1-5"  # 3:30 PM Monday-Friday
+  cron: "30 15 * * 1-5"
   class: "Upstox::StopWebsocketConnectionJob"
   queue: "market_data"
   description: "Stop Upstox WebSocket market data feed at market close"
 
 health_check_market_data:
-  cron: "*/5 9-15 * * 1-5"  # Every 5 minutes from 9 AM to 3 PM, Monday-Friday
+  cron: "*/2 9-15 * * 1-5"
   class: "Upstox::HealthCheckWebsocketConnectionJob"
   queue: "market_data"
   description: "Health check to ensure market data service is running during trading hours"
 
 sync_zerodha_holdings:
-  cron: "0 8,16 * * 1-5"  # 8:00 AM and 4:00 PM Monday-Friday
+  cron: "0 8,16 * * 1-5"
   class: "Zerodha::SyncHoldingsJob"
   queue: "default"
   description: "Sync holdings from Zerodha for all authorized users"
 
 sync_upstox_instrument_history:
-  cron: "30 16 * * 1-5"  # 4:30 PM Monday-Friday (after market close)
+  cron: "15 9 * * 1-5"
   class: "Upstox::SyncInstrumentHistoryJob"
   queue: "default"
   description: "Sync daily historical candle data for all Upstox instruments"
 
 cleanup_job_logs:
-  cron: "0 8 * * *"  # 8:00 AM daily
+  cron: "0 8 * * *"
   class: "CleanupJobLogsJob"
   queue: "default"
   description: "Clean up old job log files (older than 7 days) using rake task"
