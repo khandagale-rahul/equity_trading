@@ -43,7 +43,7 @@ gem "thruster", require: false
 # gem "image_processing", "~> 1.2"
 
 # For background jobs
-gem "sidekiq", "~> 8.0.8"
+gem "sidekiq", "~> 8.0.9"
 gem "sidekiq-cron", "~> 2.3.1"
 gem "sidekiq-unique-jobs", "~> 8.0.11"
 
