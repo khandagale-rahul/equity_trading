@@ -16,6 +16,8 @@ This is an **Equity Trading** Rails 8 application for managing trading API confi
 - **WebSocket**: Faye-WebSocket with EventMachine for real-time market data
 - **Message Protocol**: Google Protobuf for binary data decoding
 - **Cache/State**: Redis for WebSocket connection state management
+- **State Machine**: AASM gem for order state management
+- **Soft Delete**: Discard gem for soft-deleting orders
 - **Version Tracking**: PaperTrail gem for audit trail on Strategy model
 - **Testing**: RSpec with FactoryBot and Faker
 - **Deployment**: Kamal (Docker-based)
@@ -44,6 +46,9 @@ bin/rails server
 
 # Start with specific environment
 RAILS_ENV=production bin/rails server
+
+# Start full development stack (server, CSS watch, Sidekiq worker)
+bin/dev
 ```
 
 ### Testing
@@ -290,6 +295,53 @@ Key methods in Authentication concern:
 - `belongs_to :user` and `belongs_to :item, polymorphic: true`
 - Fields: `item_type`, `item_id`, `data` (jsonb)
 
+**PushNotification** (`app/models/push_notification.rb`):
+- Inherits from Notification model
+- Used for notifying users about order events and strategy execution
+
+**Order** (`app/models/order.rb`):
+- Base model using **Single Table Inheritance (STI)** pattern for order management
+- Uses AASM gem for state machine management
+- Uses Discard gem for soft-delete functionality
+- Enum for `trade_action`: `{ entry: 1, exit: 2 }`
+- `belongs_to :user`, `belongs_to :strategy`, `belongs_to :master_instrument`
+- `belongs_to :instrument, polymorphic: true` - References broker-specific instrument (ZerodhaInstrument, etc.)
+- Self-referential associations for entry/exit order pairs:
+  - `has_one :exit_order` - The exit order for an entry order
+  - `has_one :entry_order` - The entry order for an exit order (inverse relationship)
+  - Linked via `entry_order_id` foreign key
+- `has_many :push_notifications, as: :item`
+- Methods:
+  - `push_to_broker` - Submits order to broker (or simulates if `strategy.only_simulate`)
+  - `notify_about_initiation` - Creates push notification when order is initiated
+
+**ZerodhaOrder** (`app/models/zerodha_order.rb`):
+- Subclass of Order for Zerodha Kite Connect API orders
+- **Constants** for Zerodha order parameters:
+  - Products: `MIS` (intraday), `CNC` (delivery), `NRML` (normal), `CO` (cover order)
+  - Order types: `MARKET`, `LIMIT`, `SL` (stop-loss), `SL-M` (stop-loss market)
+  - Varieties: `regular`, `co`, `amo` (after-market order)
+  - Transaction types: `BUY`, `SELL`
+  - Validity: `DAY`, `IOC` (immediate or cancel), `TTL` (time to live)
+- **State Machine** (via AASM):
+  - States: `completed`, `rejected`, `cancelled`, `open`, `trigger_pending`, `modify_pending_at_exchange`, `cancellation_pending_at_exchange`, `pending_at_exchange`, `unknown`
+  - Maps Zerodha API status strings to internal state machine states
+- **Lifecycle Callbacks**:
+  - `before_create :set_instrument` - Links to ZerodhaInstrument if entry order
+  - `before_create :set_order_fields` - Populates order fields (symbol, exchange, price, quantity, etc.)
+  - `after_commit :notify_about_initiation` - Sends push notification
+  - `after_commit :push_to_broker` - Places order with Zerodha API
+  - `after_commit :handle_postback_entry_order_update` - Handles postback updates from Zerodha
+- **Key Methods**:
+  - `exit_at_current_price` - Modifies exit order to current market price with buffer
+  - `initiate_exit_order` - Creates stop-loss exit order after entry is filled (1% SL with 7% buffer)
+  - `update_order_details(last_order_history)` - Updates order with latest status from Zerodha API
+  - `update_order_status` - Fetches and applies latest order history from Zerodha
+  - `modify_order(params)` - Modifies existing order at Zerodha
+  - `cancel_order` - Cancels order at Zerodha
+  - `getOrderHistory` - Fetches order history from Zerodha API
+  - `cancel_and_reinitiate_trailing` - Cancels and recreates exit order if max modifications exceeded
+
 **ScreenerConcern** (`app/models/concerns/screener_concern.rb`):
 - Includes technical indicator modules for use in screener rules
 - Available technical indicators:
@@ -333,6 +385,7 @@ Key methods in Authentication concern:
 - **Instruments**: Read-only index (`resources :instruments, only: [:index]`) for viewing trading instruments
 - **Holdings**: Read-only (`resources :holdings, only: [:index, :show]`)
 - **Instrument Histories**: Full CRUD (`resources :instrument_histories`)
+- **Orders**: Full CRUD (`resources :orders`) for viewing and managing orders
 - **Screeners**: Full CRUD (`resources :screeners`) for managing screeners
   - `GET /screeners/:id/scan` - Executes the screener scan against all master instruments
 - **Strategies**: Full CRUD (`resources :strategies`) for managing trading strategies
@@ -366,11 +419,12 @@ RSpec is configured as the default test framework with:
 - Sidekiq-cron loads schedule from [config/schedule.yml](config/schedule.yml)
 
 **Scheduled Jobs** (runs in IST timezone, Monday-Friday):
-- **Start Market Data** (`Upstox::StartWebsocketConnectionJob`): 9:00 AM - Starts WebSocket connection
-- **Stop Market Data** (`Upstox::StopWebsocketConnectionJob`): 3:30 PM - Stops WebSocket connection
-- **Health Check** (`Upstox::HealthCheckWebsocketConnectionJob`): Every 5 min (9 AM-3 PM) - Monitors service health
+- **Start Market Data** (`Upstox::StartWebsocketConnectionJob`): 9:15 AM - Starts WebSocket connection at market open
+- **Schedule Strategy Execution** (`ScheduleStrategyExecutionJob`): 9:15 AM - Triggers entry rule scanning for all deployed strategies
+- **Stop Market Data** (`Upstox::StopWebsocketConnectionJob`): 3:30 PM - Stops WebSocket connection at market close
+- **Health Check** (`Upstox::HealthCheckWebsocketConnectionJob`): Every 2 min (9 AM-3 PM) - Monitors WebSocket service health
 - **Sync Zerodha Holdings** (`Zerodha::SyncHoldingsJob`): 8:00 AM and 4:00 PM - Syncs holdings from Zerodha
-- **Sync Upstox Instrument History** (`Upstox::SyncInstrumentHistoryJob`): 4:30 PM - Syncs daily historical OHLC data after market close
+- **Sync Upstox Instrument History** (`Upstox::SyncInstrumentHistoryJob`): 9:08 AM - Syncs daily historical OHLC data after market open
 - **Cleanup Job Logs** (`CleanupJobLogsJob`): 8:00 AM daily - Removes job log files older than 7 days
 
 **Job Queues**:
@@ -378,6 +432,41 @@ RSpec is configured as the default test framework with:
 - `default` - General background jobs
 
 **Alternative**: Solid Queue is available as Rails 8 native adapter (not currently used)
+
+**Strategy Execution Jobs**:
+
+**ScheduleStrategyExecutionJob** (`app/jobs/schedule_strategy_execution_job.rb`):
+- Triggered daily at 9:15 AM to initiate strategy execution at market open
+- Finds all deployed strategies (`Strategy.deployed`)
+- For `ScreenerBasedStrategy`: Schedules `ScanEntryRuleJob` at the screener execution time configured in `parameters["screener_execution_time"]`
+- For other strategy types: Immediately enqueues `ScanEntryRuleJob`
+- Calls `strategy.reset_fields!` for screener-based strategies before scheduling
+
+**ScanEntryRuleJob** (`app/jobs/scan_entry_rule_job.rb`):
+- Evaluates entry rules for a specific strategy against its instruments
+- Parameters: `strategy_id`, `options` (JSON with `scanner_check` flag)
+- If `options[:scanner_check]` is true for `ScreenerBasedStrategy`: Runs `strategy.scan` to refresh screener results
+- Checks if daily max entries reached (`strategy.daily_max_entries`)
+- Filters out instruments that reached re-entry limit (`strategy.re_enter`)
+- Calls `strategy.evaluate_entry_rule(master_instrument_ids)` to find matching instruments
+- For each matching instrument:
+  - Adds to `strategy.entered_master_instrument_ids` array
+  - Calls `strategy.initiate_place_order(master_instrument_id)` to create entry order
+- Self-schedules to run again in 1 minute (with `scanner_check: false`)
+- Uses `perform_at` to schedule exact execution time with zero seconds
+
+**ScanExitRuleJob** (`app/jobs/scan_exit_rule_job.rb`):
+- Evaluates exit rules for a specific entry order
+- Parameters: `entry_order_id`
+- Uses Sidekiq unique job lock (`lock: :until_executed, on_conflict: :reject`) to prevent duplicate execution
+- Finds the entry order and its associated exit order
+- **Exit Order Lifecycle**:
+  1. If no exit order exists: Calls `entry_order.initiate_exit_order` to create stop-loss exit order
+  2. If exit order exists and not completed/cancelled: Updates both entry and exit order status via `update_order_status`
+  3. Evaluates exit rule: `strategy.evaluate_exit_rule([exit_order.master_instrument_id])`
+  4. If exit rule satisfied: Calls `exit_order.exit_at_current_price` to modify order to current market price
+  5. If exit rule not satisfied: Self-schedules to run again in 1 minute
+- Terminates if exit order is already completed or cancelled
 
 **JobLogger Concern** (`app/jobs/concerns/job_logger.rb`):
 - Shared concern for all background jobs to enable structured logging
@@ -539,6 +628,17 @@ end
 
 ## Important Notes
 
+### Local Development with Foreman
+
+The application includes a [Procfile.dev](Procfile.dev) for running the complete development stack using Foreman (via `bin/dev`):
+- **web**: Rails server (`bin/rails server`)
+- **css**: CSS build watcher (`npm run build:css -- --watch`)
+- **worker**: Sidekiq worker with queue priorities (`bundle exec sidekiq -q market_data,1 -q default,2`)
+  - `market_data` queue has priority 1 (higher priority)
+  - `default` queue has priority 2 (lower priority)
+
+To start all services at once: `bin/dev`
+
 ### Protobuf Message Compilation
 
 The WebSocket service uses Protocol Buffers for efficient binary message decoding. The compiled Ruby file is at [lib/protobuf/upstox/MarketDataFeed_pb.rb](lib/protobuf/upstox/MarketDataFeed_pb.rb).
@@ -584,9 +684,31 @@ bin/rails generate migration CreateSomething --database=cache
 ### CSS Bundling
 CSS is bundled via `cssbundling-rails`. After pulling changes, run `bin/rails css:build` if styles are missing.
 
+### CI/CD Pipeline
+
+The application uses GitHub Actions for continuous integration ([.github/workflows/ci.yml](.github/workflows/ci.yml)):
+
+**Jobs**:
+1. **scan_ruby**: Security scan using Brakeman
+   - Runs `bin/brakeman --no-pager` to detect Rails security vulnerabilities
+2. **scan_js**: JavaScript dependency security audit
+   - Runs `bin/importmap audit` to check for vulnerabilities in JS dependencies
+3. **lint**: Code style check using Rubocop
+   - Runs `bin/rubocop -f github` for consistent code formatting
+4. **test**: Run RSpec test suite
+   - Installs dependencies: `build-essential`, `git`, `libyaml-dev`, `pkg-config`, `google-chrome-stable`
+   - Runs `bin/rails db:test:prepare && bundle exec rspec`
+   - Uploads screenshots from failed system tests as artifacts
+
+**Triggers**:
+- On pull requests to any branch
+- On pushes to `main` branch
+
+**Note**: Redis service is currently commented out in CI configuration.
+
 ### Single Table Inheritance (STI) Pattern
 
-The application uses STI for two domain models:
+The application uses STI for three domain models:
 
 **Instrument Model STI**:
 - All instruments are stored in the `instruments` table
@@ -600,6 +722,13 @@ The application uses STI for two domain models:
 - Use `Strategy.create(type: 'InstrumentBasedStrategy', ...)` or `InstrumentBasedStrategy.create(...)`
 - Query all strategies: `Strategy.all`, or specific type: `InstrumentBasedStrategy.all`
 - Each strategy type has its own controller and views under respective namespaces
+
+**Order Model STI**:
+- All orders are stored in the `orders` table
+- The `type` column determines the subclass (`ZerodhaOrder`, future: `UpstoxOrder`, `AngelOneOrder`)
+- Use `Order.create(type: 'ZerodhaOrder', ...)` or `ZerodhaOrder.create(...)`
+- Query all orders: `Order.all`, or specific broker: `ZerodhaOrder.all`
+- Each order type has its own broker-specific implementation for order placement and management
 
 **Screener Model** (not using STI):
 - All screeners are stored in the `screeners` table
