@@ -32,7 +32,8 @@ class ZerodhaOrder < Order
   after_commit :handle_postback_entry_order_update
 
   aasm do
-    state :completed, :rejected, :cancelled, :pending, :pending_action
+    state :completed, :rejected, :cancelled, :open, :trigger_pending, :modify_pending_at_exchange
+    state :cancellation_pending_at_exchange, :pending_at_exchange, :unknown
   end
 
   def exit_at_current_price
@@ -83,7 +84,8 @@ class ZerodhaOrder < Order
     last_order_history = last_order_history.with_indifferent_access
 
     self.reload.update(
-      status: map_zerodha_status(last_order_history[:status]),
+      status: last_order_history[:status],
+      aasm_state: map_zerodha_status(last_order_history[:status]),
       status_message: last_order_history[:status_message],
       status_message_raw: last_order_history[:status_message_raw],
       order_timestamp: parse_timestamp(last_order_history[:order_timestamp]),
@@ -151,7 +153,7 @@ class ZerodhaOrder < Order
     when "OPEN PENDING"
       "pending_at_exchange"
     else
-      zerodha_status.downcase.gsub(" ", "_") || "unknown"
+      "unknown"
     end
   end
 
