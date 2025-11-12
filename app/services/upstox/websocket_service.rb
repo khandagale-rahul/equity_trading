@@ -193,7 +193,8 @@ module Upstox
       json_data = message.to_json
       binary_data = json_data.b  # Convert to binary string (ASCII-8BIT encoding)
       @ws.send(binary_data)
-      @subscriptions.concat(instrument_keys)
+      @subscriptions += instrument_keys
+      @subscriptions = @subscriptions.uniq
       Rails.logger.info "Subscribed to #{instrument_keys.join(', ')} in #{mode} mode"
     end
 

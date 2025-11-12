@@ -29,30 +29,35 @@ class ZerodhaOrder < Order
 
   after_commit :notify_about_initiation, on: :create
   after_commit :push_to_broker, on: :create
+  after_commit :handle_postback_entry_order_update
+
+  aasm do
+    state :completed, :rejected, :cancelled, :open, :trigger_pending, :modify_pending_at_exchange
+    state :cancellation_pending_at_exchange, :pending_at_exchange, :unknown
+  end
 
   def exit_at_current_price
-    return if status.eql?("COMPLETE
-(    self.assign_attributes") || status.include?("CANCELLED")
+    return if completed? || cancelled?
 
-      ltp = master_instrument.ltp
-      zerodha_instrument = master_instrument.zerodha_instrument
+    ltp = master_instrument.ltp
+    zerodha_instrument = master_instrument.zerodha_instrument
 
-      buffer = zerodha_instrument.tick_size * 2
-      new_price = transaction_type.eql?(ZerodhaOrder::TRANSACTION_TYPE_SELL) ? (ltp - buffer) : (ltp + buffer)
-      new_price = new_price <= 0 ? 1.0 : new_price
+    buffer = zerodha_instrument.tick_size * 2
+    new_price = transaction_type.eql?(ZerodhaOrder::TRANSACTION_TYPE_SELL) ? (ltp - buffer) : (ltp + buffer)
+    new_price = new_price <= 0 ? 1.0 : new_price
 
-      params = {
-        price: new_price,
-        trigger_price: 0,
-        order_type: ZerodhaOrder::ORDER_TYPE_LIMIT
-      }
-      modify_order(params)
+    params = {
+      price: new_price,
+      trigger_price: 0,
+      order_type: ZerodhaOrder::ORDER_TYPE_LIMIT
+    }
+    modify_order(params)
   end
 
   def initiate_exit_order
     return unless entry?
 
-    entry_price = placed_order.average_price.to_f > 0 ? placed_order.average_price : placed_order.price
+    entry_price = average_price.to_f > 0 ? average_price : price
     initial_stop_loss = entry_price * 0.01
     trigger_price = entry_price.round - initial_stop_loss
     sl_price = trigger_price - trigger_price * 0.07
@@ -79,7 +84,8 @@ class ZerodhaOrder < Order
     last_order_history = last_order_history.with_indifferent_access
 
     self.reload.update(
-      status: map_zerodha_status(last_order_history[:status]),
+      status: last_order_history[:status],
+      aasm_state: map_zerodha_status(last_order_history[:status]),
       status_message: last_order_history[:status_message],
       status_message_raw: last_order_history[:status_message_raw],
       order_timestamp: parse_timestamp(last_order_history[:order_timestamp]),
@@ -98,6 +104,29 @@ class ZerodhaOrder < Order
     )
   end
 
+  def handle_postback_entry_order_update
+    return unless entry?
+
+    if previous_changes.include?(:filled_quantity)
+      if filled_quantity_previously_was.nil?
+        ScanExitRuleJob.perform_async(id)
+      else
+        params = { quantity: filled_quantity.to_i }
+        entry_order.modify_order(params)
+      end
+    end
+  end
+
+  def update_order_status
+    order_history = getOrderHistory
+
+    if order_history["status"] == "success"
+      last_status = order_history["data"].last
+
+      self.update_order_details(last_status)
+    end
+  end
+
   private
 
   def api_service_instance
@@ -113,12 +142,18 @@ class ZerodhaOrder < Order
       "rejected"
     when "CANCELLED"
       "cancelled"
-    when "OPEN", "TRIGGER PENDING"
-      "pending"
-    when "MODIFY PENDING", "CANCEL PENDING"
-      "pending_action"
+    when "OPEN"
+      "open"
+    when "TRIGGER PENDING"
+      "trigger_pending"
+    when "MODIFY PENDING"
+      "modify_pending_at_exchange"
+    when "CANCEL PENDING"
+      "cancellation_pending_at_exchange"
+    when "OPEN PENDING"
+      "pending_at_exchange"
     else
-      zerodha_status&.downcase || "unknown"
+      "unknown"
     end
   end
 
@@ -237,18 +272,9 @@ class ZerodhaOrder < Order
     api_service_instance.response
   end
 
-  def update_order_status
-    order_history = getOrderHistory
-
-    if order_history["status"] == "success"
-      last_status = order_history["data"].last
-
-      self.update_order_details(last_status)
-    end
-  end
-
   def getOrderHistory
     api_service_instance.get_order_detail(broker_order_id)
+    api_service_instance.response
   end
 
   def reinitiate_trailing

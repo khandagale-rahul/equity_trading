@@ -1,4 +1,5 @@
 class Order < ApplicationRecord
+  include AASM
   include Discard::Model
 
   enum :trade_action, { entry: 1, exit: 2 }
