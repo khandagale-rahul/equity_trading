@@ -1,8 +1,7 @@
 module RuleEvaluationConcern
   extend ActiveSupport::Concern
 
-  included do
-    DANGEROUS_PATTERNS = [
+  DANGEROUS_PATTERNS = [
       # System/Command execution
       /\bsystem\b/i,
       /\bexec\b/i,
@@ -125,6 +124,5 @@ module RuleEvaluationConcern
       /\bYAML\.load\b/i,
       /\bMarshal\.load\b/i,
       /\bMarshal\.restore\b/i
-    ]
-  end
+    ].freeze
 end

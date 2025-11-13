@@ -39,7 +39,7 @@ RSpec.describe User, type: :model do
       end
 
       it "accepts valid email formats" do
-        valid_emails = ["user@example.com", "test.user@example.co.in", "user+tag@example.com"]
+        valid_emails = [ "user@example.com", "test.user@example.co.in", "user+tag@example.com" ]
         valid_emails.each do |email|
           user = build(:user, email_address: email)
           expect(user).to be_valid
@@ -47,7 +47,7 @@ RSpec.describe User, type: :model do
       end
 
       it "validates phone number format" do
-        invalid_phones = ["12345", "abc1234567", "123-456-7890"]
+        invalid_phones = [ "12345", "abc1234567", "123-456-7890" ]
         invalid_phones.each do |phone|
           user = build(:user, phone_number: phone)
           expect(user).not_to be_valid
@@ -56,7 +56,7 @@ RSpec.describe User, type: :model do
       end
 
       it "accepts valid phone number formats" do
-        valid_phones = ["9876543210", "+919876543210", "1234567890123"]
+        valid_phones = [ "9876543210", "+919876543210", "1234567890123" ]
         valid_phones.each do |phone|
           user = build(:user, phone_number: phone)
           expect(user).to be_valid

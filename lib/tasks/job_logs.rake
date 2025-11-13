@@ -2,7 +2,7 @@
 
 namespace :job_logs do
   desc "Clean up job log files older than specified days (default: 7 days)"
-  task :cleanup, [:days] => :environment do |_t, args|
+  task :cleanup, [ :days ] => :environment do |_t, args|
     days = (args[:days] || 7).to_i
     log_dir = Rails.root.join("log", "jobs")
 
@@ -75,7 +75,7 @@ namespace :job_logs do
   end
 
   desc "Archive old job log files (compress files older than specified days, default: 7)"
-  task :archive, [:days] => :environment do |_t, args|
+  task :archive, [ :days ] => :environment do |_t, args|
     days = (args[:days] || 7).to_i
     log_dir = Rails.root.join("log", "jobs")
 
