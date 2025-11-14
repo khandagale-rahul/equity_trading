@@ -52,7 +52,7 @@ gem "faye-websocket", "~> 0.12.0"
 gem "eventmachine", "~> 1.2.7"
 
 # For Protobuf message decoding
-gem "google-protobuf", "~> 4.33.0"
+gem "google-protobuf", "~> 4.33.1"
 
 # Redis client
 gem "redis-client", "~> 0.26.1"
