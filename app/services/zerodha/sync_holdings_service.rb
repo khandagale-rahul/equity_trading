@@ -9,7 +9,7 @@ module Zerodha
     end
 
     def sync(api_config)
-      if api_config.empty?
+      unless api_config.present?
         return {
           success: true,
           message: "No authorized Zerodha API configurations found",

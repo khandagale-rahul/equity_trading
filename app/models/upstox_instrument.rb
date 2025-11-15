@@ -76,7 +76,7 @@ class UpstoxInstrument < Instrument
     super if response[:status] == "failed"
   end
 
-  def create_instrument_history(unit: "day", interval: 1, from_date: 7.days.ago.to_date.to_s, to_date: Date.today.to_s)
+  def create_instrument_history(unit: "days", interval: 1, from_date: 7.days.ago.to_date.to_s, to_date: Date.today.to_s)
     api_config = ApiConfiguration.upstox.last
     upstox_api = Upstox::ApiService.new(access_token: api_config.access_token)
 
@@ -88,13 +88,15 @@ class UpstoxInstrument < Instrument
       from_date: from_date
     )
 
+    return { success: false } if upstox_api.response.dig(:status) == "failed"
+
     candles = upstox_api.response&.dig("data", "candles")
     return unless candles
     return unless master_instrument
 
     candles.reverse.each do |candle_data|
       master_instrument.instrument_histories.find_or_initialize_by(
-        unit: unit,
+        unit: unit.singularize,
         interval: interval,
         date: candle_data[0]
       ).tap do |history|
@@ -107,9 +109,11 @@ class UpstoxInstrument < Instrument
         history.save!
       end
     end
+
+    { success: true }
   end
 
-  def create_intraday_instrument_history(unit: "day", interval: 1)
+  def create_intraday_instrument_history(unit: "days", interval: 1)
     api_config = ApiConfiguration.upstox.last
     upstox_api = Upstox::ApiService.new(access_token: api_config.access_token)
 
@@ -119,6 +123,8 @@ class UpstoxInstrument < Instrument
       interval: interval
     )
 
+    return { success: false } if upstox_api.response.dig(:status) == "failed"
+
     candles = upstox_api.response&.dig("data", "candles")
     return unless candles
     return unless master_instrument
@@ -138,5 +144,7 @@ class UpstoxInstrument < Instrument
         history.save!
       end
     end
+
+    { success: true }
   end
 end

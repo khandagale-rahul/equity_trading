@@ -131,6 +131,8 @@ class ZerodhaOrder < Order
 
   def api_service_instance
     @api_config ||= strategy.user.api_configurations.zerodha.last
+    return unless @api_config
+
     @api_service ||= Zerodha::ApiService.new(api_key: @api_config.api_key, access_token: @api_config.access_token)
   end
 
@@ -172,11 +174,11 @@ class ZerodhaOrder < Order
     self.assign_attributes(
       tradingsymbol: instrument.symbol,
       exchange: instrument.exchange,
-      variety: ZerodhaOrder::VARIETY_REGULAR,
-      order_type: ZerodhaOrder::ORDER_TYPE_SL,
-      product: ZerodhaOrder::PRODUCT_MIS,
-      validity: ZerodhaOrder::VALIDITY_IOC,
-      transaction_type: ZerodhaOrder::TRANSACTION_TYPE_BUY,
+      variety: (variety.presence || ZerodhaOrder::VARIETY_REGULAR),
+      order_type: (order_type.presence || ZerodhaOrder::ORDER_TYPE_SL),
+      product: (product.presence || ZerodhaOrder::PRODUCT_MIS),
+      validity: (validity.presence || ZerodhaOrder::VALIDITY_IOC),
+      transaction_type: (transaction_type.presence || ZerodhaOrder::TRANSACTION_TYPE_BUY),
       quantity: 1,
       trigger_price: (ltp + instrument.tick_size),
       price: (ltp + instrument.tick_size),
@@ -186,7 +188,8 @@ class ZerodhaOrder < Order
   end
 
   def push_to_broker
-    super && return if strategy.only_simulate
+    return super if strategy.only_simulate
+    return handle_missing_configuration unless api_service_instance.present?
 
     params = {
       variety: variety,
@@ -227,7 +230,7 @@ class ZerodhaOrder < Order
   end
 
   def notify_about_initiation
-    super && return if strategy.only_simulate
+    return super if strategy.only_simulate
 
     messages = []
     messages << "Placing Zerodha Order. Entry Price: #{price}"
@@ -239,7 +242,8 @@ class ZerodhaOrder < Order
   end
 
   def modify_order(params)
-    super && return if strategy.only_simulate
+    return super if strategy.only_simulate
+    return handle_missing_configuration unless api_service_instance
 
     params = params.merge({ variety: self.variety, order_id: self.broker_order_id })
 
@@ -264,6 +268,7 @@ class ZerodhaOrder < Order
   end
 
   def cancel_order
+    return handle_missing_configuration unless api_service_instance
     params = { variety: self.variety, order_id: self.broker_order_id }
 
     api_service_instance.cancel_order(params)
@@ -273,6 +278,8 @@ class ZerodhaOrder < Order
   end
 
   def getOrderHistory
+    return handle_missing_configuration unless api_service_instance
+
     api_service_instance.get_order_detail(broker_order_id)
     api_service_instance.response
   end

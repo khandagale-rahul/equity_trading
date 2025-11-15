@@ -398,7 +398,6 @@ module Upstox
       to_date = params[:to_date]
       from_date = params[:from_date]
 
-      # Validate unit
       valid_units = %w[minutes hours days weeks months]
       unless valid_units.include?(unit)
         return {
