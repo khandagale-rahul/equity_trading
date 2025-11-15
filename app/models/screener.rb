@@ -44,6 +44,10 @@ class Screener < ApplicationRecord
       return unless changes.include?("rules")
       return unless rules.present?
 
+      unless MasterInstrument.any?
+        errors.add(:base, "insufficient data. Please contact Admin")
+      end
+
       DANGEROUS_PATTERNS.each do |pattern|
         if rules.match?(pattern)
           errors.add(:rules, "contains potentially dangerous code pattern")

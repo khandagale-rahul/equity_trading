@@ -41,3 +41,4 @@
 
 # Ignore built CSS
 /app/assets/builds
+/.vscode/

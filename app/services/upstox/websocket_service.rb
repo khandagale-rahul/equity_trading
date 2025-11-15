@@ -5,7 +5,7 @@ require_relative "../../../lib/protobuf/upstox/MarketDataFeed_pb"
 module Upstox
   class WebsocketService
     AUTHORIZE_URL = "https://api.upstox.com/v3/feed/market-data-feed/authorize"
-    MAX_RECONNECT_ATTEMPTS = 10
+    MAX_RECONNECT_ATTEMPTS = 5
     RECONNECT_DELAY = 5 # seconds
     HEARTBEAT_INTERVAL = 30 # seconds
 
@@ -424,7 +424,7 @@ module Upstox
     def check_connection_health
       return unless connected?
 
-      if @last_message_time && (Time.current - @last_message_time) > (HEARTBEAT_INTERVAL * 3)
+      if @last_message_time && (Time.current - @last_message_time) > HEARTBEAT_INTERVAL
         Rails.logger.warn "[MarketData] No messages received for #{(Time.current - @last_message_time).to_i} seconds. Connection may be stale."
 
         if (Time.current - @last_message_time) > (HEARTBEAT_INTERVAL * 4)

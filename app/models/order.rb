@@ -1,4 +1,6 @@
 class Order < ApplicationRecord
+  has_paper_trail
+
   include AASM
   include Discard::Model
 
@@ -34,7 +36,7 @@ class Order < ApplicationRecord
 
       self.push_notifications.create(
         user_id: user_id,
-        message: message.join(" ")
+        message: messages.join(" ")
       )
     end
   end
