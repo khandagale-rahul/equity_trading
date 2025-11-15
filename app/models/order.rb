@@ -24,7 +24,7 @@ class Order < ApplicationRecord
   has_many :push_notifications, as: :item
 
   def push_to_broker
-    if strategy.only_simulate
+    if strategy.only_simulate && entry?
       ScanExitRuleJob.perform_async(id)
     end
   end
@@ -48,5 +48,8 @@ class Order < ApplicationRecord
   rescue => e
     Rails.logger.error "Failed to parse timestamp: #{timestamp_string} - #{e.message}"
     nil
+  end
+
+  def handle_missing_configuration
   end
 end

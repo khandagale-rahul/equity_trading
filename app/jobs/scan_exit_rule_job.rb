@@ -8,9 +8,9 @@ class ScanExitRuleJob
   def perform(entry_order_id)
     setup_job_logger
     logs = []
+    entry_order = Order.find_by(id: entry_order_id)
 
-    entry_order = Order.entry.find_by(id: entry_order_id)
-    if entry_order
+    if entry_order && entry_order.entry?
       exit_order = entry_order.exit_order
 
       if exit_order.present? && (exit_order.completed? || exit_order.cancelled?)

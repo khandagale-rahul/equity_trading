@@ -45,7 +45,7 @@ RSpec.describe InstrumentHistory, type: :model do
       expect(history.hour?).to be true
     end
 
-    it "can be set to day" do
+    it "can be set to days" do
       history = create(:instrument_history, unit: :day)
       expect(history.unit).to eq("day")
       expect(history.day?).to be true
