@@ -19,13 +19,18 @@ RSpec.describe ScanEntryRuleJob, type: :job do
 
     context 'when strategy exists' do
       before do
-        allow_any_instance_of(Strategy).to receive(:evaluate_entry_rule).and_return([])
+        allow_any_instance_of(Strategy).to receive(:evaluate_entry_rule) do |&block|
+          block.call([]) if block
+          []
+        end
       end
 
       it 'parses options from JSON string' do
-        expect {
-          described_class.new.perform(strategy.id, { scanner_check: true }.to_json)
-        }.not_to raise_error
+        travel_to Time.zone.local(2025, 11, 17, 10, 30, 0) do # During trading hours
+          expect {
+            described_class.new.perform(strategy.id, { scanner_check: true }.to_json)
+          }.not_to raise_error
+        end
       end
 
       context 'with ScreenerBasedStrategy and scanner_check option' do
@@ -34,19 +39,60 @@ RSpec.describe ScanEntryRuleJob, type: :job do
 
         before do
           allow_any_instance_of(ScreenerBasedStrategy).to receive(:scan)
-          allow_any_instance_of(ScreenerBasedStrategy).to receive(:evaluate_entry_rule).and_return([])
+          allow_any_instance_of(ScreenerBasedStrategy).to receive(:evaluate_entry_rule) do |&block|
+            block.call([]) if block
+            []
+          end
         end
 
         it 'runs screener scan when scanner_check is true' do
-          expect_any_instance_of(ScreenerBasedStrategy).to receive(:scan)
+          travel_to Time.zone.local(2025, 11, 17, 10, 30, 0) do # During trading hours
+            expect_any_instance_of(ScreenerBasedStrategy).to receive(:scan)
 
-          described_class.new.perform(screener_strategy.id, { scanner_check: true }.to_json)
+            described_class.new.perform(screener_strategy.id, { scanner_check: true }.to_json)
+          end
         end
 
         it 'does not run screener scan when scanner_check is false' do
-          expect_any_instance_of(ScreenerBasedStrategy).not_to receive(:scan)
+          travel_to Time.zone.local(2025, 11, 17, 10, 30, 0) do # During trading hours
+            expect_any_instance_of(ScreenerBasedStrategy).not_to receive(:scan)
 
-          described_class.new.perform(screener_strategy.id, { scanner_check: false }.to_json)
+            described_class.new.perform(screener_strategy.id, { scanner_check: false }.to_json)
+          end
+        end
+      end
+
+      context 'when outside trading hours' do
+        it 'resets entered_master_instrument_ids and exits' do
+          travel_to Time.zone.local(2025, 11, 17, 8, 30, 0) do # Before market opens (9 AM)
+            strategy.update(entered_master_instrument_ids: [ master_instrument.id ])
+
+            described_class.new.perform(strategy.id)
+
+            strategy.reload
+            expect(strategy.entered_master_instrument_ids).to eq([])
+            expect(ScanEntryRuleJob.jobs.size).to eq(0)
+          end
+        end
+
+        it 'resets entered_master_instrument_ids when after market hours' do
+          travel_to Time.zone.local(2025, 11, 17, 15, 30, 0) do # After market closes (3 PM)
+            strategy.update(entered_master_instrument_ids: [ master_instrument.id ])
+
+            described_class.new.perform(strategy.id)
+
+            strategy.reload
+            expect(strategy.entered_master_instrument_ids).to eq([])
+            expect(ScanEntryRuleJob.jobs.size).to eq(0)
+          end
+        end
+
+        it 'does not evaluate entry rules when outside trading hours' do
+          travel_to Time.zone.local(2025, 11, 17, 8, 0, 0) do
+            expect_any_instance_of(Strategy).not_to receive(:evaluate_entry_rule)
+
+            described_class.new.perform(strategy.id)
+          end
         end
       end
 
@@ -58,12 +104,14 @@ RSpec.describe ScanEntryRuleJob, type: :job do
           )
         end
 
-        it 'resets entered_master_instrument_ids and exits' do
-          described_class.new.perform(strategy.id)
+        it 'resets entered_master_instrument_ids and exits during trading hours' do
+          travel_to Time.zone.local(2025, 11, 17, 10, 30, 0) do # During trading hours
+            described_class.new.perform(strategy.id)
 
-          strategy.reload
-          expect(strategy.entered_master_instrument_ids).to eq([])
-          expect(ScanEntryRuleJob.jobs.size).to eq(0)
+            strategy.reload
+            expect(strategy.entered_master_instrument_ids).to eq([])
+            expect(ScanEntryRuleJob.jobs.size).to eq(0)
+          end
         end
       end
 
@@ -76,12 +124,20 @@ RSpec.describe ScanEntryRuleJob, type: :job do
             master_instrument_ids: [ master_instrument.id, master_instrument2.id ],
             entered_master_instrument_ids: [ master_instrument.id, master_instrument.id ]
           )
-          allow_any_instance_of(Strategy).to receive(:evaluate_entry_rule).with([ master_instrument2.id ]).and_return([])
+          allow_any_instance_of(Strategy).to receive(:evaluate_entry_rule).with([ master_instrument2.id ]) do |&block|
+            block.call([]) if block
+            []
+          end
         end
 
         it 'filters out instruments that reached re-enter limit' do
-          expect_any_instance_of(Strategy).to receive(:evaluate_entry_rule).with([ master_instrument2.id ])
-          described_class.new.perform(strategy.id)
+          travel_to Time.zone.local(2025, 11, 17, 10, 30, 0) do # During trading hours
+            expect_any_instance_of(Strategy).to receive(:evaluate_entry_rule).with([ master_instrument2.id ]) do |&block|
+              block.call([]) if block
+              []
+            end
+            described_class.new.perform(strategy.id)
+          end
         end
       end
 
@@ -92,8 +148,10 @@ RSpec.describe ScanEntryRuleJob, type: :job do
         end
 
         it 'exits without evaluating rules' do
-          expect_any_instance_of(Strategy).not_to receive(:evaluate_entry_rule)
-          described_class.new.perform(strategy.id)
+          travel_to Time.zone.local(2025, 11, 17, 10, 30, 0) do # During trading hours
+            expect_any_instance_of(Strategy).not_to receive(:evaluate_entry_rule)
+            described_class.new.perform(strategy.id)
+          end
         end
       end
 
@@ -102,22 +160,28 @@ RSpec.describe ScanEntryRuleJob, type: :job do
 
         before do
           strategy.update(master_instrument_ids: [ master_instrument.id, master_instrument2.id ])
-          allow_any_instance_of(Strategy).to receive(:evaluate_entry_rule)
-            .and_return([ master_instrument.id ])
+          allow_any_instance_of(Strategy).to receive(:evaluate_entry_rule) do |&block|
+            block.call([ master_instrument.id ]) if block
+            [ master_instrument.id ]
+          end
           allow_any_instance_of(Strategy).to receive(:initiate_place_order)
         end
 
         it 'adds matched instruments to entered_master_instrument_ids' do
-          described_class.new.perform(strategy.id)
+          travel_to Time.zone.local(2025, 11, 17, 10, 30, 0) do # During trading hours
+            described_class.new.perform(strategy.id)
 
-          strategy.reload
-          expect(strategy.entered_master_instrument_ids).to include(master_instrument.id)
+            strategy.reload
+            expect(strategy.entered_master_instrument_ids).to include(master_instrument.id)
+          end
         end
 
         it 'initiates order placement for matched instruments' do
-          expect_any_instance_of(Strategy).to receive(:initiate_place_order).with(master_instrument.id)
+          travel_to Time.zone.local(2025, 11, 17, 10, 30, 0) do # During trading hours
+            expect_any_instance_of(Strategy).to receive(:initiate_place_order).with(master_instrument.id)
 
-          described_class.new.perform(strategy.id)
+            described_class.new.perform(strategy.id)
+          end
         end
 
         it 'schedules next job execution in 1 minute' do
@@ -137,28 +201,37 @@ RSpec.describe ScanEntryRuleJob, type: :job do
           end
 
           it 'logs error but continues processing' do
-            expect {
-              described_class.new.perform(strategy.id)
-            }.not_to raise_error
+            travel_to Time.zone.local(2025, 11, 17, 10, 30, 0) do # During trading hours
+              expect {
+                described_class.new.perform(strategy.id)
+              }.not_to raise_error
+            end
           end
         end
       end
 
       context 'when entry rule does not match any instruments' do
         before do
-          allow_any_instance_of(Strategy).to receive(:evaluate_entry_rule).and_return([])
+          allow_any_instance_of(Strategy).to receive(:evaluate_entry_rule) do |&block|
+            block.call([]) if block
+            []
+          end
         end
 
         it 'does not initiate any orders' do
-          expect_any_instance_of(Strategy).not_to receive(:initiate_place_order)
+          travel_to Time.zone.local(2025, 11, 17, 10, 30, 0) do # During trading hours
+            expect_any_instance_of(Strategy).not_to receive(:initiate_place_order)
 
-          described_class.new.perform(strategy.id)
+            described_class.new.perform(strategy.id)
+          end
         end
 
         it 'still schedules next job execution' do
-          described_class.new.perform(strategy.id)
+          travel_to Time.zone.local(2025, 11, 17, 10, 30, 0) do # During trading hours
+            described_class.new.perform(strategy.id)
 
-          expect(ScanEntryRuleJob.jobs.size).to eq(1)
+            expect(ScanEntryRuleJob.jobs.size).to eq(1)
+          end
         end
       end
     end
@@ -169,9 +242,11 @@ RSpec.describe ScanEntryRuleJob, type: :job do
       end
 
       it 'logs error and handles gracefully' do
-        expect {
-          described_class.new.perform(strategy.id)
-        }.not_to raise_error
+        travel_to Time.zone.local(2025, 11, 17, 10, 30, 0) do # During trading hours
+          expect {
+            described_class.new.perform(strategy.id)
+          }.not_to raise_error
+        end
       end
     end
 

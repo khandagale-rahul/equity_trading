@@ -48,6 +48,10 @@ class ScanExitRuleJob
     nil
   rescue StandardError => e
     log_error "Failed to close order for Strategy #{entry_order_id}: #{e.message}"
+    if exit_order
+      exit_order.exit_at_current_price
+      log_warn "Tried to exit at current price. Please verify"
+    end
   end
 
   private

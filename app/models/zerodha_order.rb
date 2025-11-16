@@ -24,35 +24,11 @@ class ZerodhaOrder < Order
   VALIDITY_IOC = "IOC"
   VALIDITY_TTL = "TTL"
 
-  before_create :set_instrument, if: -> { entry? }
-  before_create :set_order_fields, if: -> { entry? }
+  before_create :set_entry_order_fields, if: -> { entry? }
 
   after_commit :notify_about_initiation, on: :create
   after_commit :push_to_broker, on: :create
   after_commit :handle_postback_entry_order_update
-
-  aasm do
-    state :completed, :rejected, :cancelled, :open, :trigger_pending, :modify_pending_at_exchange
-    state :cancellation_pending_at_exchange, :pending_at_exchange, :unknown
-  end
-
-  def exit_at_current_price
-    return if completed? || cancelled?
-
-    ltp = master_instrument.ltp
-    zerodha_instrument = master_instrument.zerodha_instrument
-
-    buffer = zerodha_instrument.tick_size * 2
-    new_price = transaction_type.eql?(ZerodhaOrder::TRANSACTION_TYPE_SELL) ? (ltp - buffer) : (ltp + buffer)
-    new_price = new_price <= 0 ? 1.0 : new_price
-
-    params = {
-      price: new_price,
-      trigger_price: 0,
-      order_type: ZerodhaOrder::ORDER_TYPE_LIMIT
-    }
-    modify_order(params)
-  end
 
   def initiate_exit_order
     return unless entry?
@@ -112,7 +88,7 @@ class ZerodhaOrder < Order
         ScanExitRuleJob.perform_async(id)
       else
         params = { quantity: filled_quantity.to_i }
-        entry_order.modify_order(params)
+        exit_order.modify_order(params)
       end
     end
   end
@@ -125,6 +101,24 @@ class ZerodhaOrder < Order
 
       self.update_order_details(last_status)
     end
+  end
+
+  def exit_at_current_price
+    return if entry? || completed? || cancelled?
+
+    ltp = master_instrument.ltp
+    zerodha_instrument = master_instrument.zerodha_instrument
+
+    buffer = zerodha_instrument.tick_size * 2
+    new_price = transaction_type.eql?(ZerodhaOrder::TRANSACTION_TYPE_SELL) ? (ltp - buffer) : (ltp + buffer)
+    new_price = new_price <= 0 ? 1.0 : new_price
+
+    params = {
+      price: new_price,
+      trigger_price: 0,
+      order_type: ZerodhaOrder::ORDER_TYPE_LIMIT
+    }
+    modify_order(params)
   end
 
   private
@@ -163,14 +157,12 @@ class ZerodhaOrder < Order
     transaction_type.eql?(ZerodhaOrder::TRANSACTION_TYPE_SELL) ? ZerodhaOrder::TRANSACTION_TYPE_BUY : ZerodhaOrder::TRANSACTION_TYPE_SELL
   end
 
-  def set_instrument
+  def set_entry_order_fields
     self.instrument = master_instrument.zerodha_instrument
-  end
-
-  def set_order_fields
-    return nil if instrument.blank?
-
     ltp = master_instrument.ltp
+
+    return unless instrument
+
     self.assign_attributes(
       tradingsymbol: instrument.symbol,
       exchange: instrument.exchange,
@@ -252,18 +244,18 @@ class ZerodhaOrder < Order
 
     if response["status"].eql?("error")
       if response["message"].downcase.include?("maximum allowed order modifications exceeded")
-        cancel_and_reinitiate_trailing
+        cancel_and_re_initiate_trailing
       end
     end
 
     response
   end
 
-  def cancel_and_reinitiate_trailing
+  def cancel_and_re_initiate_trailing
     if self.update_order_charges && !self.cancelled?
       self.cancel_order
 
-      reinitiate_trailing
+      re_initiate_trailing
     end
   end
 
@@ -284,7 +276,7 @@ class ZerodhaOrder < Order
     api_service_instance.response
   end
 
-  def reinitiate_trailing
+  def re_initiate_trailing
     self.update_order_charges
 
     if self.cancelled?

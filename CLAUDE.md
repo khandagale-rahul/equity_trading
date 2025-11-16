@@ -424,7 +424,7 @@ RSpec is configured as the default test framework with:
 - **Stop Market Data** (`Upstox::StopWebsocketConnectionJob`): 3:30 PM - Stops WebSocket connection at market close
 - **Health Check** (`Upstox::HealthCheckWebsocketConnectionJob`): Every 2 min (9 AM-3 PM) - Monitors WebSocket service health
 - **Sync Zerodha Holdings** (`Zerodha::SyncHoldingsJob`): 8:00 AM and 4:00 PM - Syncs holdings from Zerodha
-- **Sync Upstox Instrument History** (`Upstox::SyncInstrumentHistoryJob`): 9:08 AM - Syncs daily historical OHLC data after market open
+- **Sync Upstox Instrument History** (`SyncInstrumentHistoryJob`): 8:30 AM - Syncs daily historical OHLC data before market open
 - **Cleanup Job Logs** (`CleanupJobLogsJob`): 8:00 AM daily - Removes job log files older than 7 days
 
 **Job Queues**:
@@ -633,9 +633,9 @@ end
 The application includes a [Procfile.dev](Procfile.dev) for running the complete development stack using Foreman (via `bin/dev`):
 - **web**: Rails server (`bin/rails server`)
 - **css**: CSS build watcher (`npm run build:css -- --watch`)
-- **worker**: Sidekiq worker with queue priorities (`bundle exec sidekiq -q market_data,1 -q default,2`)
-  - `market_data` queue has priority 1 (higher priority)
-  - `default` queue has priority 2 (lower priority)
+- **worker**: Two separate Sidekiq worker processes
+  - `bundle exec sidekiq -q default,2` - Handles default queue
+  - `bundle exec sidekiq -q market_data,2` - Handles market data queue
 
 To start all services at once: `bin/dev`
 
@@ -690,21 +690,21 @@ The application uses GitHub Actions for continuous integration ([.github/workflo
 
 **Jobs**:
 1. **scan_ruby**: Security scan using Brakeman
-   - Runs `bin/brakeman --no-pager` to detect Rails security vulnerabilities
+   - Runs `bin/brakeman --quiet --no-pager --exit-on-warn --exit-on-error` to detect Rails security vulnerabilities
 2. **scan_js**: JavaScript dependency security audit
    - Runs `bin/importmap audit` to check for vulnerabilities in JS dependencies
 3. **lint**: Code style check using Rubocop
    - Runs `bin/rubocop -f github` for consistent code formatting
 4. **test**: Run RSpec test suite
+   - Services: PostgreSQL 16 and Redis
    - Installs dependencies: `build-essential`, `git`, `libyaml-dev`, `pkg-config`, `google-chrome-stable`
    - Runs `bin/rails db:test:prepare && bundle exec rspec`
+   - Tests database seeds with `bin/rails db:seed:replant`
    - Uploads screenshots from failed system tests as artifacts
 
 **Triggers**:
 - On pull requests to any branch
 - On pushes to `main` branch
-
-**Note**: Redis service is currently commented out in CI configuration.
 
 ### Single Table Inheritance (STI) Pattern
 
