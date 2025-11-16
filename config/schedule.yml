@@ -31,11 +31,11 @@ sync_zerodha_holdings:
   queue: "default"
   description: "Sync holdings from Zerodha for all authorized users"
 
-sync_upstox_instrument_history:
-  cron: "8 9 * * 1-5"
-  class: "Upstox::SyncInstrumentHistoryJob"
+SyncInstrumentHistoryJob:
+  cron: "30 8 * * 1-5"
+  class: "SyncInstrumentHistoryJob"
   queue: "default"
-  description: "Sync daily historical candle data for all Upstox instruments"
+  description: "Sync daily historical candle data"
 
 cleanup_job_logs:
   cron: "0 8 * * *"

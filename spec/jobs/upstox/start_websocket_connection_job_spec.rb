@@ -5,7 +5,7 @@ require 'rails_helper'
 RSpec.describe Upstox::StartWebsocketConnectionJob, type: :job do
   let(:user) { create(:user) }
   let(:api_config) { create(:api_configuration, :upstox, :authorized, user: user) }
-  let(:redis_client) { instance_double(RedisClient) }
+  let(:redis_client) { Redis.client }
   let(:websocket_service) { instance_double(Upstox::WebsocketService) }
 
   before do
