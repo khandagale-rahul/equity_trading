@@ -370,24 +370,25 @@ module Upstox
     end
 
     def schedule_reconnect
-      @reconnect_attempts += 1
+      Upstox::StartWebsocketConnectionJob.perform_async
+      # @reconnect_attempts += 1
 
-      if @reconnect_attempts > MAX_RECONNECT_ATTEMPTS
-        Rails.logger.error "[MarketData] Max reconnection attempts (#{MAX_RECONNECT_ATTEMPTS}) reached. Giving up."
-        @on_error_callback&.call("Max reconnection attempts reached")
-        return
-      end
+      # if @reconnect_attempts > MAX_RECONNECT_ATTEMPTS
+      #   Rails.logger.error "[MarketData] Max reconnection attempts (#{MAX_RECONNECT_ATTEMPTS}) reached. Giving up."
+      #   @on_error_callback&.call("Max reconnection attempts reached")
+      #   return
+      # end
 
-      # Exponential backoff: 5s, 10s, 20s, 40s, 80s, then cap at 120s
-      delay = [ RECONNECT_DELAY * (2 ** (@reconnect_attempts - 1)), 120 ].min
+      # # Exponential backoff: 5s, 10s, 20s, 40s, 80s, then cap at 120s
+      # delay = [ RECONNECT_DELAY * (2 ** (@reconnect_attempts - 1)), 120 ].min
 
-      Rails.logger.info "[MarketData] Scheduling reconnection attempt #{@reconnect_attempts}/#{MAX_RECONNECT_ATTEMPTS} in #{delay} seconds"
+      # Rails.logger.info "[MarketData] Scheduling reconnection attempt #{@reconnect_attempts}/#{MAX_RECONNECT_ATTEMPTS} in #{delay} seconds"
 
-      EM.add_timer(delay) do
-        Rails.logger.info "[MarketData] Attempting reconnection #{@reconnect_attempts}/#{MAX_RECONNECT_ATTEMPTS}..."
-        @intentional_disconnect = false
-        connect
-      end
+      # EM.add_timer(delay) do
+      #   Rails.logger.info "[MarketData] Attempting reconnection #{@reconnect_attempts}/#{MAX_RECONNECT_ATTEMPTS}..."
+      #   @intentional_disconnect = false
+      #   connect
+      # end
     end
 
     # Resubscribe to instruments after reconnection

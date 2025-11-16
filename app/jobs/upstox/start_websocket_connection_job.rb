@@ -123,18 +123,20 @@ module Upstox
     private
 
     def redis_client
-      Redis.client
+      $redis
     end
 
     def handle_market_data(data, upstox_identifier_token_mapping)
       # log_debug "[MarketData] Received data: #{data.inspect}"
 
-      data[:feeds].each do |identifier, detail|
-        redis_client.call(
-          "SET",
-          upstox_identifier_token_mapping[identifier],
-          detail.dig(:ltpc, :ltp)
-        )
+      Thread.new do
+        data[:feeds].each do |identifier, detail|
+          redis_client.call(
+            "SET",
+            upstox_identifier_token_mapping[identifier],
+            detail.dig(:ltpc, :ltp)
+          )
+        end
       end
       # Example: Broadcast to ActionCable (if you have a channel set up)
       # ActionCable.server.broadcast("market_data_channel", data)
