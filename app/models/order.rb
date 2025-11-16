@@ -1,10 +1,15 @@
 class Order < ApplicationRecord
   has_paper_trail
 
-  include AASM
   include Discard::Model
 
   enum :trade_action, { entry: 1, exit: 2 }
+
+  include AASM
+  aasm do
+    state :completed, :rejected, :cancelled, :open, :trigger_pending, :modify_pending_at_exchange
+    state :cancellation_pending_at_exchange, :pending_at_exchange, :unknown
+  end
 
   belongs_to :user
   belongs_to :strategy

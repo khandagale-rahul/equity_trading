@@ -19,7 +19,10 @@ RSpec.describe ScanEntryRuleJob, type: :job do
 
     context 'when strategy exists' do
       before do
-        allow_any_instance_of(Strategy).to receive(:evaluate_entry_rule).and_return([])
+        allow_any_instance_of(Strategy).to receive(:evaluate_entry_rule) do |&block|
+          block.call([]) if block
+          []
+        end
       end
 
       it 'parses options from JSON string' do
@@ -34,7 +37,10 @@ RSpec.describe ScanEntryRuleJob, type: :job do
 
         before do
           allow_any_instance_of(ScreenerBasedStrategy).to receive(:scan)
-          allow_any_instance_of(ScreenerBasedStrategy).to receive(:evaluate_entry_rule).and_return([])
+          allow_any_instance_of(ScreenerBasedStrategy).to receive(:evaluate_entry_rule) do |&block|
+            block.call([]) if block
+            []
+          end
         end
 
         it 'runs screener scan when scanner_check is true' do
@@ -76,11 +82,17 @@ RSpec.describe ScanEntryRuleJob, type: :job do
             master_instrument_ids: [ master_instrument.id, master_instrument2.id ],
             entered_master_instrument_ids: [ master_instrument.id, master_instrument.id ]
           )
-          allow_any_instance_of(Strategy).to receive(:evaluate_entry_rule).with([ master_instrument2.id ]).and_return([])
+          allow_any_instance_of(Strategy).to receive(:evaluate_entry_rule).with([ master_instrument2.id ]) do |&block|
+            block.call([]) if block
+            []
+          end
         end
 
         it 'filters out instruments that reached re-enter limit' do
-          expect_any_instance_of(Strategy).to receive(:evaluate_entry_rule).with([ master_instrument2.id ])
+          expect_any_instance_of(Strategy).to receive(:evaluate_entry_rule).with([ master_instrument2.id ]) do |&block|
+            block.call([]) if block
+            []
+          end
           described_class.new.perform(strategy.id)
         end
       end
@@ -102,8 +114,10 @@ RSpec.describe ScanEntryRuleJob, type: :job do
 
         before do
           strategy.update(master_instrument_ids: [ master_instrument.id, master_instrument2.id ])
-          allow_any_instance_of(Strategy).to receive(:evaluate_entry_rule)
-            .and_return([ master_instrument.id ])
+          allow_any_instance_of(Strategy).to receive(:evaluate_entry_rule) do |&block|
+            block.call([ master_instrument.id ]) if block
+            [ master_instrument.id ]
+          end
           allow_any_instance_of(Strategy).to receive(:initiate_place_order)
         end
 
@@ -146,7 +160,10 @@ RSpec.describe ScanEntryRuleJob, type: :job do
 
       context 'when entry rule does not match any instruments' do
         before do
-          allow_any_instance_of(Strategy).to receive(:evaluate_entry_rule).and_return([])
+          allow_any_instance_of(Strategy).to receive(:evaluate_entry_rule) do |&block|
+            block.call([]) if block
+            []
+          end
         end
 
         it 'does not initiate any orders' do

@@ -22,7 +22,7 @@ class Strategy < ApplicationRecord
     MasterInstrument.where(id: instruments_ids)
   end
 
-  def evaluate_entry_rule(instruments_ids = self.master_instrument_ids)
+  def evaluate_entry_rule(instruments_ids = self.master_instrument_ids, &block)
     filtered_master_instrument_ids = []
 
     ActiveRecord::Base.transaction(requires_new: true) do
@@ -36,7 +36,11 @@ class Strategy < ApplicationRecord
       raise ActiveRecord::Rollback
     end
 
-    filtered_master_instrument_ids
+    if block
+      block.call(filtered_master_instrument_ids)
+    else
+      filtered_master_instrument_ids
+    end
   end
 
   def evaluate_exit_rule(instruments_ids = self.master_instrument_ids)
