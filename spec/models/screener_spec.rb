@@ -104,7 +104,7 @@ RSpec.describe Screener, type: :model do
       let(:screener) { create(:screener, user: user, rules: "master_instrument.ltp > 175") }
 
       before do
-        allow($redis).to receive(:call).and_return(nil)
+        allow(Redis.client).to receive(:call).and_return(nil)
       end
 
       it "filters instruments based on rules" do

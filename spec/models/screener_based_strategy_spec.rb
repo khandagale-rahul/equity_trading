@@ -83,7 +83,7 @@ RSpec.describe ScreenerBasedStrategy, type: :model do
     let(:strategy) { create(:screener_based_strategy, parameters: { screener_id: screener.id, screener_execution_time: "09:30" }) }
 
     before do
-      allow($redis).to receive(:call).and_return(nil)
+      allow(Redis.client).to receive(:call).and_return(nil)
       screener.update(scanned_master_instrument_ids: [ master_instrument1.id, master_instrument2.id ])
     end
 

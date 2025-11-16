@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Global Redis client configuration
-# Access via: Redis.client or $redis (global variable for backward compatibility)
+# Access via: Redis.client (thread-safe connection pool)
 
 module Redis
   class << self
@@ -20,8 +20,13 @@ module Redis
       @client&.close
       @client = nil
     end
+
+    # Convenience method for safe Redis operations with error handling
+    def safe_call(command, *args)
+      client.call(command, *args)
+    rescue Redis::BaseError => e
+      Rails.logger.error("[Redis] Command failed: #{command} #{args.inspect} - #{e.message}")
+      nil
+    end
   end
 end
-
-# Global variable for convenience
-$redis = Redis.client

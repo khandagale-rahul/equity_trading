@@ -21,6 +21,14 @@ class MasterInstrument < ApplicationRecord
   end
 
   def ltp
-    $redis.call("GET", exchange_token).presence&.to_f || self[:ltp]
+    return self[:ltp] unless exchange_token.present?
+
+    begin
+      redis_ltp = Redis.client.call("GET", exchange_token)
+      redis_ltp.present? ? redis_ltp.to_f : self[:ltp]
+    rescue Redis::BaseError => e
+      Rails.logger.error("[MasterInstrument #{id}] Redis LTP fetch failed: #{e.message}")
+      self[:ltp]
+    end
   end
 end

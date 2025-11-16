@@ -123,21 +123,24 @@ module Upstox
     private
 
     def redis_client
-      $redis
+      Redis.client
     end
 
     def handle_market_data(data, upstox_identifier_token_mapping)
       # log_debug "[MarketData] Received data: #{data.inspect}"
 
-      Thread.new do
-        data[:feeds].each do |identifier, detail|
+      data[:feeds].each do |identifier, detail|
+        begin
           redis_client.call(
             "SET",
             upstox_identifier_token_mapping[identifier],
             detail.dig(:ltpc, :ltp)
           )
+        rescue Redis::BaseError => e
+          log_error "[MarketData] Redis SET failed for #{identifier}: #{e.message}"
         end
       end
+
       # Example: Broadcast to ActionCable (if you have a channel set up)
       # ActionCable.server.broadcast("market_data_channel", data)
 

@@ -66,7 +66,7 @@ RSpec.describe Strategy, type: :model do
     let(:strategy) { create(:strategy, master_instrument_ids: [ master_instrument.id ], entry_rule: "true") }
 
     before do
-      allow($redis).to receive(:call).and_return(nil)
+      allow(Redis.client).to receive(:call).and_return(nil)
     end
 
     it "evaluates entry rule for instruments" do
@@ -98,7 +98,7 @@ RSpec.describe Strategy, type: :model do
     let(:strategy) { create(:strategy, master_instrument_ids: [ master_instrument.id ], exit_rule: "true") }
 
     before do
-      allow($redis).to receive(:call).and_return(nil)
+      allow(Redis.client).to receive(:call).and_return(nil)
     end
 
     it "evaluates exit rule for instruments" do

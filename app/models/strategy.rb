@@ -82,7 +82,9 @@ class Strategy < ApplicationRecord
       ActiveRecord::Base.transaction(requires_new: true) do
         begin
           evaluate_rule(:entry_rule, MasterInstrument.first)
-        rescue
+        rescue StandardError => e
+          Rails.logger.error("[Strategy #{id}] Entry rule validation failed: #{e.message}")
+          errors.add(:entry_rule, "validation failed: #{e.message}")
         end
         raise ActiveRecord::Rollback
       end
@@ -97,7 +99,9 @@ class Strategy < ApplicationRecord
       ActiveRecord::Base.transaction(requires_new: true) do
         begin
           evaluate_rule(:exit_rule, MasterInstrument.first)
-        rescue
+        rescue StandardError => e
+          Rails.logger.error("[Strategy #{id}] Exit rule validation failed: #{e.message}")
+          errors.add(:exit_rule, "validation failed: #{e.message}")
         end
         raise ActiveRecord::Rollback
       end

@@ -134,7 +134,7 @@ RSpec.describe MasterInstrument, type: :model do
 
     context "when Redis has the LTP value" do
       before do
-        allow($redis).to receive(:call).with("GET", "12345").and_return("200.50")
+        allow(Redis.client).to receive(:call).with("GET", "12345").and_return("200.50")
       end
 
       it "returns the LTP from Redis" do
@@ -144,7 +144,7 @@ RSpec.describe MasterInstrument, type: :model do
 
     context "when Redis does not have the LTP value" do
       before do
-        allow($redis).to receive(:call).with("GET", "12345").and_return(nil)
+        allow(Redis.client).to receive(:call).with("GET", "12345").and_return(nil)
       end
 
       it "returns the LTP from the database" do
@@ -154,7 +154,7 @@ RSpec.describe MasterInstrument, type: :model do
 
     context "when Redis returns empty string" do
       before do
-        allow($redis).to receive(:call).with("GET", "12345").and_return("")
+        allow(Redis.client).to receive(:call).with("GET", "12345").and_return("")
       end
 
       it "returns the LTP from the database" do

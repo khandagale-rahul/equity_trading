@@ -1,6 +1,10 @@
 class ApiConfiguration < ApplicationRecord
   belongs_to :user
 
+  encrypts :api_key
+  encrypts :api_secret
+  encrypts :access_token
+
   enum :api_name, { zerodha: 1, upstox: 2, angel_one: 3 }
 
   validates :api_name, presence: true, uniqueness: { scope: :user_id, message: "has already been taken" }

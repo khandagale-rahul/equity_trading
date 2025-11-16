@@ -201,24 +201,51 @@ class ZerodhaOrder < Order
   end
 
   def handle_response(create_order_response)
-    if create_order_response["status"] == "success"
-      self.update(
+    case create_order_response["status"]
+    when "success"
+      update(
         broker_order_id: create_order_response.dig("data", "order_id")
       )
-    elsif create_order_response["status"] == "error"
-      self.update(
+    when "error"
+      update(
         status: create_order_response["status"],
         status_message: create_order_response["message"],
         status_message_raw: create_order_response["error_type"]
       )
-    elsif create_order_response["status"] == "failed"
-      parsed_response = JSON.parse(create_order_response["message"])
-      self.update(
-        status: parsed_response["status"],
-        status_message: parsed_response["message"],
-        status_message_raw: parsed_response["error_type"]
+    when "failed"
+      handle_failed_response(create_order_response)
+    else
+      Rails.logger.warn("[Order #{id}] Unknown response status: #{create_order_response['status']}")
+      update(
+        status: "unknown",
+        status_message: "Unknown response status",
+        status_message_raw: create_order_response.to_json
       )
     end
+  rescue StandardError => e
+    Rails.logger.error("[Order #{id}] Error handling response: #{e.message}")
+    Rails.logger.error(e.backtrace.join("\n"))
+    update(
+      aasm_state: "unknown",
+      status_message: "Response processing error: #{e.message}"
+    )
+  end
+
+  def handle_failed_response(create_order_response)
+    parsed_response = JSON.parse(create_order_response["message"])
+    update(
+      status: parsed_response["status"],
+      status_message: parsed_response["message"],
+      status_message_raw: parsed_response["error_type"]
+    )
+  rescue JSON::ParserError => e
+    Rails.logger.error("[Order #{id}] JSON parsing failed for failed response: #{e.message}")
+    Rails.logger.error("Raw message: #{create_order_response['message']}")
+    update(
+      status: "failed",
+      status_message: create_order_response["message"],
+      status_message_raw: "JSON parse error"
+    )
   end
 
   def notify_about_initiation
@@ -274,6 +301,9 @@ class ZerodhaOrder < Order
 
     api_service_instance.get_order_detail(broker_order_id)
     api_service_instance.response
+  end
+
+  def update_order_charges
   end
 
   def re_initiate_trailing
